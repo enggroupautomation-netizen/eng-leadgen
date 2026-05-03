@@ -6,7 +6,7 @@ import { CompanyDetailPanel } from '../components/CompanyDetailPanel'
 import { KanbanView } from '../components/KanbanView'
 import { supabase } from '../lib/supabase'
 import { DEMO_MODE, MOCK_STAGES } from '../lib/mockData'
-import type { Company } from '../types'
+import type { Company, PipelineStage } from '../types'
 
 const STAGE_COLORS: Record<string, { bg: string; color: string }> = {
   'Nuovo': { bg: 'rgba(124,58,237,.18)', color: '#A78BFA' },
@@ -102,6 +102,7 @@ export function Companies() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [localCompanies, setLocalCompanies] = useState<Company[]>([])
+  const [stages, setStages] = useState<PipelineStage[]>(MOCK_STAGES)
 
   const { companies, loading, error } = useCompanies({
     search: debouncedSearch || undefined,
@@ -109,8 +110,15 @@ export function Companies() {
 
   useEffect(() => { setLocalCompanies(companies) }, [companies])
 
+  useEffect(() => {
+    if (DEMO_MODE) return
+    supabase.from('pipeline_stages').select('*').order('position').then(({ data }) => {
+      if (data?.length) setStages(data as PipelineStage[])
+    })
+  }, [])
+
   async function handleKanbanStageChange(item: Company, newStageId: string) {
-    const stage = MOCK_STAGES.find(s => s.id === newStageId)
+    const stage = stages.find(s => s.id === newStageId)
     setLocalCompanies(prev => prev.map(c =>
       c.id === item.id ? { ...c, stage_id: newStageId, stage: stage ?? c.stage } : c
     ))
@@ -372,6 +380,7 @@ export function Companies() {
           <div style={{ padding: '20px 24px' }}>
             <KanbanView
               items={filtered}
+              stages={stages}
               onItemClick={(item) => setSelectedCompany(item as Company)}
               onStageChange={(item, stageId) => handleKanbanStageChange(item as Company, stageId)}
               type="companies"

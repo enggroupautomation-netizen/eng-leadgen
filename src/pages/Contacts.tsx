@@ -6,7 +6,7 @@ import { ContactDetailPanel } from '../components/ContactDetailPanel'
 import { KanbanView } from '../components/KanbanView'
 import { supabase } from '../lib/supabase'
 import { DEMO_MODE, MOCK_STAGES } from '../lib/mockData'
-import type { Contact } from '../types'
+import type { Contact, PipelineStage } from '../types'
 
 const STAGE_COLORS: Record<string, { bg: string; color: string }> = {
   'Nuovo': { bg: 'rgba(32,76,229,.18)', color: '#7EB3FF' },
@@ -115,6 +115,7 @@ export function Contacts() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [localContacts, setLocalContacts] = useState<Contact[]>([])
+  const [stages, setStages] = useState<PipelineStage[]>(MOCK_STAGES)
 
   const { contacts, loading, error } = useContacts({
     search: debouncedSearch || undefined,
@@ -123,8 +124,16 @@ export function Contacts() {
   // Keep local copy in sync with hook (realtime updates)
   useEffect(() => { setLocalContacts(contacts) }, [contacts])
 
+  // Load real stages from Supabase
+  useEffect(() => {
+    if (DEMO_MODE) return
+    supabase.from('pipeline_stages').select('*').order('position').then(({ data }) => {
+      if (data?.length) setStages(data as PipelineStage[])
+    })
+  }, [])
+
   async function handleKanbanStageChange(item: Contact, newStageId: string) {
-    const stage = MOCK_STAGES.find(s => s.id === newStageId)
+    const stage = stages.find(s => s.id === newStageId)
     // Optimistic update
     setLocalContacts(prev => prev.map(c =>
       c.id === item.id ? { ...c, stage_id: newStageId, stage: stage ?? c.stage } : c
@@ -391,6 +400,7 @@ export function Contacts() {
           <div style={{ padding: '20px 24px' }}>
             <KanbanView
               items={filtered}
+              stages={stages}
               onItemClick={(item) => setSelectedContact(item as Contact)}
               onStageChange={(item, stageId) => handleKanbanStageChange(item as Contact, stageId)}
               type="contacts"

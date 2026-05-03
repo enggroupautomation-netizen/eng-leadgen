@@ -60,9 +60,19 @@ export const handler = async (event: NetlifyEvent): Promise<NetlifyResponse> => 
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Fetch default stage UUID
+  const { data: defaultStage } = await supabase
+    .from('pipeline_stages')
+    .select('id')
+    .eq('is_default', true)
+    .single()
+
+  const defaultStageId = defaultStage?.id ?? null
+
   // Upsert (dedup by linkedin_url)
   const rows = payload.contacts.map(c => ({
     ...c,
+    stage_id: defaultStageId,
     campaign_id: payload.campaign_id ?? null,
   }))
 

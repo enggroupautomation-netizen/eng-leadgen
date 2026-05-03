@@ -1,24 +1,17 @@
 import { useState } from 'react'
 import type { Contact, Company, PipelineStage } from '../types'
 
-const STAGES: PipelineStage[] = [
-  { id: 's1', name: 'Nuovo',         color: '#204CE5', position: 1, applies_to: 'both', is_default: true },
-  { id: 's2', name: 'Contattato',    color: '#F59E0B', position: 2, applies_to: 'both', is_default: false },
-  { id: 's3', name: 'In trattativa', color: '#8B5CF6', position: 3, applies_to: 'both', is_default: false },
-  { id: 's4', name: 'Qualificato',   color: '#10B981', position: 4, applies_to: 'both', is_default: false },
-  { id: 's5', name: 'Perso',         color: '#6B7280', position: 5, applies_to: 'both', is_default: false },
-]
-
 type KanbanRecord = (Contact | Company) & { name: string }
 
 interface Props {
   items: KanbanRecord[]
+  stages: PipelineStage[]
   onItemClick: (item: KanbanRecord) => void
   onStageChange: (item: KanbanRecord, newStageId: string) => void
   type: 'contacts' | 'companies'
 }
 
-export function KanbanView({ items, onItemClick, onStageChange }: Props) {
+export function KanbanView({ items, stages, onItemClick, onStageChange }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null)
 
@@ -38,7 +31,7 @@ export function KanbanView({ items, onItemClick, onStageChange }: Props) {
       padding: '4px 0 16px',
       minHeight: '400px',
     }}>
-      {STAGES.map(stage => {
+      {stages.map(stage => {
         const stageItems = items.filter(i => i.stage_id === stage.id)
         const isDragOver = dragOverStageId === stage.id
         const draggingItem = items.find(i => i.id === draggingId)
