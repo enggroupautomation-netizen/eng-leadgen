@@ -565,12 +565,39 @@ export function Contacts() {
                           {getInitials(contact.name)}
                         </div>
                         <div>
-                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>{contact.name}</div>
-                          {contact.linkedin_url && (
-                            <a href={contact.linkedin_url} target="_blank" rel="noreferrer"
-                              style={{ fontSize: '11px', color: '#0077B5', textDecoration: 'none' }}>
-                              LinkedIn
+                          <div style={{ fontSize: '13.5px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '3px' }}>{contact.name}</div>
+                          {contact.linkedin_url ? (
+                            <a
+                              href={contact.linkedin_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                fontSize: '10.5px', fontWeight: 600, textDecoration: 'none',
+                                color: '#5BAFD6',
+                                background: 'rgba(0,119,181,.12)',
+                                border: '1px solid rgba(0,119,181,.2)',
+                                padding: '2px 7px', borderRadius: '20px',
+                              }}
+                            >
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                              </svg>
+                              Aperto
                             </a>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '4px',
+                              fontSize: '10.5px', fontWeight: 600,
+                              color: '#6B7A8A',
+                              background: 'rgba(107,114,128,.1)',
+                              border: '1px solid rgba(107,114,128,.15)',
+                              padding: '2px 7px', borderRadius: '20px',
+                            }}>
+                              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#6B7A8A' }} />
+                              Chiuso
+                            </span>
                           )}
                         </div>
                       </div>
