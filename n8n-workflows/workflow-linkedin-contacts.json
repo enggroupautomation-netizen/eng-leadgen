@@ -1,0 +1,126 @@
+{
+  "name": "ENG — LinkedIn Contacts Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 7 * * 1-5" }]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Ogni mattina (lun-ven 07:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "actorId": "apify/linkedin-profile-scraper",
+        "input": {
+          "startUrls": [
+            { "url": "https://www.linkedin.com/search/results/people/?keywords={{ $vars.LINKEDIN_KEYWORDS }}&geoUrn={{ $vars.LINKEDIN_GEO }}" }
+          ],
+          "maxResults": 50,
+          "proxy": { "useApifyProxy": true }
+        },
+        "waitForFinish": true
+      },
+      "id": "apify-linkedin",
+      "name": "Apify — LinkedIn Profile Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "notes": "Sostituire actorId con il tuo actor Apify specifico. Configurare LINKEDIN_KEYWORDS e LINKEDIN_GEO nelle variabili n8n."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizza e pulisce l'output di Apify LinkedIn\nconst items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const d = item.json;\n  \n  // Skip se senza nome\n  if (!d.firstName && !d.fullName) continue;\n  \n  const name = d.fullName || `${d.firstName || ''} ${d.lastName || ''}`.trim();\n  const company = d.companyName || d.company || d.currentCompany || null;\n  const role = d.jobTitle || d.headline || d.title || null;\n  const linkedin_url = d.linkedInUrl || d.url || d.profileUrl || null;\n  const location = d.location || d.city || null;\n  const email = d.email || d.emailAddress || null;\n  const phone = d.phone || d.phoneNumber || null;\n  \n  // Calcola score semplice\n  let score = 0;\n  if (email) score += 30;\n  if (phone) score += 20;\n  if (linkedin_url) score += 15;\n  if (company) score += 15;\n  if (role) score += 10;\n  if (location) score += 10;\n  \n  results.push({\n    json: {\n      name,\n      role,\n      company,\n      linkedin_url,\n      email,\n      phone,\n      location,\n      score: Math.min(score, 100),\n      enrichment: {\n        raw_headline: d.headline || null,\n        connections: d.connectionsCount || null,\n        industry: d.industry || null,\n        summary: d.summary ? d.summary.slice(0, 200) : null,\n      }\n    }\n  });\n}\n\nreturn results;"
+      },
+      "id": "normalize-contacts",
+      "name": "Normalizza dati LinkedIn",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "filter-score",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 20,
+              "operator": { "type": "number", "operation": "gte" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-quality",
+      "name": "Filtra score >= 20",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 50,
+        "options": {}
+      },
+      "id": "batch",
+      "name": "Raggruppa in batch da 50",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DASHBOARD_URL }}/.netlify/functions/webhook-contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source\": \"linkedin\",\n  \"contacts\": {{ JSON.stringify($input.all().map(i => i.json)) }}\n}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "send-to-dashboard",
+      "name": "Invia alla Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconsole.log(`✅ LinkedIn: ${response.inserted} inseriti, ${response.received} ricevuti`);\nreturn [{ json: { status: 'ok', ...response } }];"
+      },
+      "id": "log-result",
+      "name": "Log risultato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Ogni mattina (lun-ven 07:00)": { "main": [[{ "node": "Apify — LinkedIn Profile Scraper", "type": "main", "index": 0 }]] },
+    "Apify — LinkedIn Profile Scraper": { "main": [[{ "node": "Normalizza dati LinkedIn", "type": "main", "index": 0 }]] },
+    "Normalizza dati LinkedIn": { "main": [[{ "node": "Filtra score >= 20", "type": "main", "index": 0 }]] },
+    "Filtra score >= 20": { "main": [[{ "node": "Raggruppa in batch da 50", "type": "main", "index": 0 }]] },
+    "Raggruppa in batch da 50": { "main": [[{ "node": "Invia alla Dashboard", "type": "main", "index": 0 }]] },
+    "Invia alla Dashboard": { "main": [[{ "node": "Log risultato", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": ["ENG", "linkedin", "lead-generation"],
+  "meta": {
+    "description": "Scrapa profili LinkedIn via Apify, normalizza i dati, filtra per qualità e li invia alla dashboard ENG. Schedulato lun-ven alle 07:00. VARIABILI RICHIESTE: DASHBOARD_URL, WEBHOOK_SECRET, LINKEDIN_KEYWORDS, LINKEDIN_GEO"
+  }
+}

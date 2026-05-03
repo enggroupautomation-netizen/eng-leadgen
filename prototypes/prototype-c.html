@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENG Platform — Concept C v3: Atlas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{font-family:'Inter',sans-serif;}
+    /* Sfondo meno saturo — -20% rispetto a v2 */
+    body{background:linear-gradient(150deg,#F2F5FF 0%,#F5F7FF 45%,#F8F5FF 100%);min-height:100vh;}
+
+    @keyframes pulse-live{0%,100%{box-shadow:0 0 0 0 rgba(52,211,153,.5);}60%{box-shadow:0 0 0 7px rgba(52,211,153,0);}}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    @keyframes kpi-in{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+    @keyframes slide-left{from{opacity:0;transform:translateX(28px);}to{opacity:1;transform:translateX(0);}}
+    @keyframes toast-in{from{opacity:0;transform:translateY(18px) scale(.95);}to{opacity:1;transform:translateY(0) scale(1);}}
+    @keyframes area-draw{from{clip-path:inset(0 100% 0 0);}to{clip-path:inset(0 0% 0 0);}}
+    @keyframes prog{from{width:0%;}to{width:var(--w);}}
+    @keyframes feed-pop{from{opacity:0;transform:scale(.96) translateY(6px);}to{opacity:1;transform:scale(1) translateY(0);}}
+
+    .live-dot{animation:pulse-live 2s ease-in-out infinite;border-radius:50%;}
+    .spinner{animation:spin 1s linear infinite;}
+    .kpi-card{animation:kpi-in .5s cubic-bezier(.34,1.56,.64,1) forwards;opacity:0;}
+    .kpi-card:nth-child(1){animation-delay:.06s;}.kpi-card:nth-child(2){animation-delay:.13s;}
+    .kpi-card:nth-child(3){animation-delay:.2s;}.kpi-card:nth-child(4){animation-delay:.27s;}
+    .area-chart{animation:area-draw 1.2s ease .3s forwards;clip-path:inset(0 100% 0 0);}
+    .search-panel{animation:slide-left .3s ease forwards;}
+    .toast{animation:toast-in .4s cubic-bezier(.34,1.56,.64,1) forwards;}
+    .prog{animation:prog 1s cubic-bezier(.34,1.56,.64,1) .4s forwards;width:0%;}
+    .feed-item{animation:feed-pop .4s ease forwards;}
+
+    /* Glass ridotto: solo sidebar, cards KPI; il resto è white opaco */
+    .glass-sidebar{
+      background:rgba(255,255,255,.78);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border-right:1px solid rgba(32,76,229,.1);
+    }
+    .glass-topbar{
+      background:rgba(255,255,255,.88);
+      backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(32,76,229,.08);
+    }
+    /* KPI: glass leggero */
+    .glass-kpi{
+      background:rgba(255,255,255,.85);
+      backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.95);
+      box-shadow:0 2px 12px rgba(32,76,229,.06),0 1px 3px rgba(0,0,0,.04);
+      transition:all .22s ease;
+    }
+    .glass-kpi:hover{background:rgba(255,255,255,.98);border-color:rgba(32,76,229,.18);box-shadow:0 8px 28px rgba(32,76,229,.12);transform:translateY(-2px);}
+    /* Pannelli contenuto: bianchi solidi per massima leggibilità */
+    .panel{background:white;border:1px solid rgba(32,76,229,.08);box-shadow:0 2px 12px rgba(32,76,229,.05);border-radius:1rem;transition:all .2s;}
+    .panel:hover{border-color:rgba(32,76,229,.16);box-shadow:0 8px 24px rgba(32,76,229,.1);}
+    /* Search panel solido */
+    .solid-panel{background:white;border-left:1px solid rgba(32,76,229,.1);box-shadow:-12px 0 36px rgba(32,76,229,.08);}
+
+    .sidebar-item{border-radius:10px;transition:all .15s;}
+    .sidebar-item:hover{background:rgba(32,76,229,.07);color:#204CE5;}
+    .sidebar-item.active{background:rgba(32,76,229,.1);color:#204CE5;font-weight:600;}
+
+    .table-row:hover td{background:rgba(32,76,229,.03);}
+    /* Più respiro verticale nelle righe */
+    .table-row td{padding-top:14px;padding-bottom:14px;border-bottom:1px solid rgba(32,76,229,.05);}
+
+    .top-accent{background:linear-gradient(90deg,#204CE5 0%,#527EFF 50%,#FF6600 100%);height:3px;}
+
+    .chart-svg path.area1{fill:url(#cg1);}
+    .chart-svg path.area2{fill:url(#cg2);}
+    .chart-svg path.line1{fill:none;stroke:#204CE5;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+    .chart-svg path.line2{fill:none;stroke:#10b981;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:5 3;}
+    .chart-svg circle{stroke:white;stroke-width:2.5;}
+  </style>
+</head>
+<body class="text-[#112337] min-h-screen flex">
+
+  <!-- SEARCH PANEL — solido -->
+  <div id="sp" class="hidden fixed inset-y-0 right-0 w-[400px] solid-panel z-50 flex flex-col search-panel">
+    <div class="top-accent"></div>
+    <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+      <div><h2 class="font-bold text-xl text-[#112337]">Nuova Ricerca</h2>
+        <p class="text-[#686E77] text-xs mt-0.5">Avvia scraping LinkedIn via n8n</p></div>
+      <button onclick="tsp()" class="p-2 text-[#686E77] hover:text-[#112337] hover:bg-gray-100 rounded-xl">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+      <div>
+        <label class="text-[#112337] text-xs font-bold uppercase tracking-wider block mb-1.5">Posizione geografica</label>
+        <div class="relative"><svg class="absolute left-3.5 top-3.5 w-4 h-4 text-[#686E77]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <input value="Milano, Italia" class="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm text-[#112337] focus:outline-none focus:border-[#204CE5] focus:ring-2 focus:ring-blue-100"/></div>
+      </div>
+      <div>
+        <label class="text-[#112337] text-xs font-bold uppercase tracking-wider block mb-1.5">Parole chiave / Ruolo</label>
+        <input value="CEO, CTO, Founder" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#204CE5] focus:ring-2 focus:ring-blue-100"/>
+        <p class="text-[#686E77] text-xs mt-1">Separa con virgola</p>
+      </div>
+      <div>
+        <label class="text-[#112337] text-xs font-bold uppercase tracking-wider block mb-1.5">Dimensione azienda</label>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="py-2.5 rounded-xl text-sm font-semibold bg-[#EEF2FF] text-[#204CE5] border-2 border-[#204CE5]">Startup</button>
+          <button class="py-2.5 rounded-xl text-sm text-[#686E77] border border-gray-200 hover:border-[#204CE5] hover:text-[#204CE5]">PMI</button>
+          <button class="py-2.5 rounded-xl text-sm text-[#686E77] border border-gray-200 hover:border-[#204CE5] hover:text-[#204CE5]">Mid-market</button>
+          <button class="py-2.5 rounded-xl text-sm text-[#686E77] border border-gray-200 hover:border-[#204CE5] hover:text-[#204CE5]">Enterprise</button>
+        </div>
+      </div>
+      <div>
+        <label class="text-[#112337] text-xs font-bold uppercase tracking-wider block mb-1.5">Campagna</label>
+        <select class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-[#112337] focus:outline-none focus:border-[#204CE5] bg-white appearance-none">
+          <option>Milano Fintech Q1</option><option>Roma HR Directors</option><option>+ Nuova campagna</option>
+        </select>
+      </div>
+      <div class="rounded-xl p-4" style="background:linear-gradient(135deg,#EEF2FF,#F2F5FF);border:1px solid rgba(32,76,229,.15);">
+        <p class="text-[#204CE5] text-xs font-bold uppercase tracking-wider mb-1.5">Stima risultati</p>
+        <p class="text-[#204CE5] text-2xl font-extrabold">~180 <span class="text-[#527EFF] text-sm font-normal">profili</span></p>
+        <p class="text-[#686E77] text-xs mt-1">Tempo stimato: 8–12 min via n8n</p>
+      </div>
+    </div>
+    <div class="px-6 py-5 border-t border-gray-100 space-y-2">
+      <button onclick="go()" class="w-full text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 text-sm"
+              style="background:linear-gradient(135deg,#204CE5,#527EFF);box-shadow:0 4px 16px rgba(32,76,229,.35);">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Avvia Ricerca LinkedIn</button>
+      <p class="text-[#686E77] text-xs text-center">I risultati appaiono in tempo reale</p>
+    </div>
+  </div>
+  <div id="ov" onclick="tsp()" class="hidden fixed inset-0 bg-[#112337]/20 backdrop-blur-sm z-40"></div>
+
+  <!-- SIDEBAR — glass leggero -->
+  <aside class="glass-sidebar flex flex-col fixed h-screen z-20" style="width:240px;">
+    <div class="top-accent"></div>
+    <div class="px-5 py-5">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl overflow-hidden shadow-md flex-shrink-0">
+          <img src="https://www.enggroup.it/wp-content/uploads/2026/02/logo-eng.jpg"
+               onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='flex';"
+               class="w-full h-full object-cover"/>
+          <div class="w-full h-full bg-[#204CE5] items-center justify-center font-bold text-white text-xs" style="display:none;">ENG</div>
+        </div>
+        <div><div class="font-bold text-[#112337] text-sm">ENG Group</div>
+          <div class="text-[#686E77] text-xs">Lead Platform</div></div>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-2 overflow-y-auto">
+      <!-- PERSONE -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#A0AABB;text-transform:uppercase;padding:6px 12px 6px;margin-top:4px;">Persone</div>
+      <a id="navC-contatti" class="sidebar-item flex items-center gap-2 px-3 py-2.5 cursor-pointer text-[#686E77]" onclick="switchTabC('contatti')">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#0077B5;flex-shrink:0;"></span>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        <span class="text-sm">Contatti LinkedIn</span>
+        <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style="background:#E0F0FA;color:#0077B5;">142</span>
+      </a>
+
+      <!-- AZIENDE -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#A0AABB;text-transform:uppercase;padding:6px 12px 6px;margin-top:8px;">Aziende</div>
+      <a id="navC-aziende" class="sidebar-item flex items-center gap-2 px-3 py-2.5 cursor-pointer text-[#686E77]" onclick="switchTabC('aziende')">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#7C3AED;flex-shrink:0;"></span>
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span class="text-sm">Aziende</span>
+        <span class="ml-auto text-xs font-bold px-2 py-0.5 rounded-full" style="background:#EDE9FA;color:#7C3AED;">87</span>
+      </a>
+
+      <!-- GESTIONE -->
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#A0AABB;text-transform:uppercase;padding:6px 12px 6px;margin-top:8px;">Gestione</div>
+      <a class="sidebar-item active flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#204CE5]">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span class="text-sm">Dashboard</span>
+      </a>
+      <a onclick="tsp()" class="sidebar-item flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#686E77]">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="text-sm">Nuova Ricerca</span>
+        <span class="ml-auto text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style="background:linear-gradient(135deg,#204CE5,#527EFF);">NEW</span>
+      </a>
+      <a class="sidebar-item flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#686E77]">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <span class="text-sm">Campagne</span>
+      </a>
+
+      <!-- SISTEMA -->
+      <div class="h-px my-3" style="background:linear-gradient(90deg,transparent,rgba(32,76,229,.12),transparent);"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#A0AABB;text-transform:uppercase;padding:0 12px 6px;">Sistema</div>
+      <a class="sidebar-item flex items-center gap-3 px-3 py-2.5 cursor-pointer text-[#686E77]">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        <span class="text-sm">Impostazioni</span>
+      </a>
+    </nav>
+    <div class="px-4 py-4" style="border-top:1px solid rgba(32,76,229,.1);">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-md flex-shrink-0"
+             style="background:linear-gradient(135deg,#204CE5,#527EFF);">MR</div>
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-[#112337] truncate">Marco Rossi</div>
+          <div class="text-xs text-[#686E77]">Admin</div>
+        </div>
+        <div class="live-dot w-2 h-2 bg-emerald-400 flex-shrink-0"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col" style="margin-left:240px;">
+
+    <!-- TOPBAR -->
+    <header class="glass-topbar px-8 py-4 flex items-center justify-between sticky top-0 z-10">
+      <div>
+        <h1 class="font-bold text-xl text-[#112337]">Dashboard</h1>
+        <p class="text-[#686E77] text-sm">Lunedì, 23 Marzo 2026 · Tutto operativo</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 text-emerald-700 text-xs font-bold bg-emerald-50 border border-emerald-200 px-4 py-2 rounded-full">
+          <span class="live-dot w-2 h-2 bg-emerald-500 block"></span>LIVE · 3 in arrivo
+        </div>
+        <button class="relative p-2.5 text-[#686E77] hover:text-[#204CE5] bg-white/80 hover:bg-white border border-gray-200 rounded-xl shadow-sm">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#FF6600] rounded-full"></span>
+        </button>
+        <button onclick="tsp()" class="text-white text-sm font-bold px-5 py-2.5 rounded-xl flex items-center gap-2"
+                style="background:linear-gradient(135deg,#204CE5,#527EFF);box-shadow:0 4px 14px rgba(32,76,229,.3);">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Nuova Ricerca
+        </button>
+      </div>
+    </header>
+
+    <!-- BANNER RICERCA — ribbon colorato pieno -->
+    <div id="banner" style="background:linear-gradient(90deg,#204CE5,#3b5ef5);display:flex;" class="px-8 py-3.5 items-center gap-4">
+      <svg class="spinner w-4 h-4 text-white/70 flex-shrink-0" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+        <path class="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+      <div class="flex-1">
+        <div class="flex items-center gap-3 mb-1.5">
+          <span class="text-white font-bold text-sm">Ricerca in corso</span>
+          <span class="text-blue-200 text-sm">· Milano Fintech Q1</span>
+          <span class="text-blue-300 text-xs">avviata 4 min fa · ~8 min rimanenti</span>
+        </div>
+        <div class="bg-white/25 rounded-full h-2 w-72 overflow-hidden">
+          <div class="prog h-full rounded-full bg-white" style="--w:35%;"></div>
+        </div>
+      </div>
+      <div class="text-white font-extrabold text-lg flex-shrink-0">23 <span class="text-blue-300 text-sm font-normal">/ ~180</span></div>
+      <button class="text-white/70 hover:text-white text-xs border border-white/30 px-3 py-1.5 rounded-lg hover:bg-white/10 flex-shrink-0">Interrompi</button>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="flex-1 px-8 py-5 space-y-5">
+
+      <!-- KPI — glass leggero -->
+      <div class="grid grid-cols-4 gap-4">
+        <div class="kpi-card glass-kpi rounded-2xl p-5" style="border-left:3px solid #0077B5;">
+          <div class="flex items-start justify-between mb-4">
+            <div class="p-2.5 rounded-xl" style="background:rgba(0,119,181,.1);">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#0077B5" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <span class="text-emerald-700 text-[11px] font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">+5 vs ieri</span>
+          </div>
+          <div class="text-4xl font-extrabold text-[#112337] tracking-tight mb-1">18</div>
+          <div class="text-sm font-semibold" style="color:#0077B5;">Contatti oggi</div>
+          <div class="mt-2 text-xs text-[#686E77]/60">+5 rispetto a ieri</div>
+        </div>
+
+        <div class="kpi-card glass-kpi rounded-2xl p-5" style="border-left:3px solid #7C3AED;">
+          <div class="flex items-start justify-between mb-4">
+            <div class="p-2.5 rounded-xl" style="background:rgba(124,58,237,.1);">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="#7C3AED" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            </div>
+            <span class="text-emerald-700 text-[11px] font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">+3 vs ieri</span>
+          </div>
+          <div class="text-4xl font-extrabold text-[#112337] tracking-tight mb-1">12</div>
+          <div class="text-sm font-semibold" style="color:#7C3AED;">Aziende oggi</div>
+          <div class="mt-2 text-xs text-[#686E77]/60">+3 rispetto a ieri</div>
+        </div>
+
+        <div class="kpi-card glass-kpi rounded-2xl p-5">
+          <div class="flex items-start justify-between mb-4">
+            <div class="p-2.5 rounded-xl" style="background:rgba(16,185,129,.08);">
+              <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <span class="text-emerald-700 text-[11px] font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">↑ 8%</span>
+          </div>
+          <div class="text-4xl font-extrabold text-emerald-600 tracking-tight mb-1">38</div>
+          <div class="text-[#686E77] text-sm">Qualificati</div>
+          <div class="mt-2 text-xs text-[#686E77]/60">+6 questa settimana</div>
+        </div>
+
+        <div class="kpi-card glass-kpi rounded-2xl p-5" style="border-color:rgba(255,102,0,.15);">
+          <div class="flex items-start justify-between mb-4">
+            <div class="p-2.5 rounded-xl" style="background:rgba(255,102,0,.08);">
+              <svg class="w-5 h-5 text-[#FF6600]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+            </div>
+            <span class="text-[#FF6600] text-[11px] font-bold bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">HOT 🔥</span>
+          </div>
+          <div class="text-4xl font-extrabold text-[#FF6600] tracking-tight mb-1">+24</div>
+          <div class="text-[#686E77] text-sm">Nuovi questa sett.</div>
+          <div class="mt-2 text-xs text-[#686E77]/60">Picco: +8 martedì</div>
+        </div>
+      </div>
+
+      <!-- CHART + FEED (griglia 3:2) -->
+      <div class="grid grid-cols-5 gap-4">
+
+        <!-- Doppio area chart -->
+        <div class="col-span-3 panel p-6">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h3 class="font-bold text-[#112337]">Trend Lead</h3>
+              <p class="text-[#686E77] text-sm">Totali vs Qualificati · 30 giorni</p>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-3 text-xs text-[#686E77]">
+                <div class="flex items-center gap-1.5"><div class="w-6 h-0.5 bg-[#204CE5] rounded"></div>Totali</div>
+                <div class="flex items-center gap-1.5"><div class="w-6 border-t-2 border-dashed border-emerald-500"></div>Qualificati</div>
+              </div>
+              <div class="flex gap-1 bg-gray-50 border border-gray-100 p-1 rounded-xl">
+                <button class="text-xs font-bold text-white px-3 py-1.5 rounded-lg" style="background:linear-gradient(135deg,#204CE5,#527EFF);">30g</button>
+                <button class="text-xs text-[#686E77] hover:text-[#204CE5] px-3 py-1.5 rounded-lg">7g</button>
+                <button class="text-xs text-[#686E77] hover:text-[#204CE5] px-3 py-1.5 rounded-lg">90g</button>
+              </div>
+            </div>
+          </div>
+          <svg class="chart-svg area-chart w-full" height="120" viewBox="0 0 500 120" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="cg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#204CE5" stop-opacity=".15"/><stop offset="100%" stop-color="#204CE5" stop-opacity="0"/></linearGradient>
+              <linearGradient id="cg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#10b981" stop-opacity=".12"/><stop offset="100%" stop-color="#10b981" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path class="area1" d="M0,100 L33,85 L66,98 L99,70 L132,80 L165,52 L198,65 L231,32 L264,48 L297,76 L330,38 L363,18 L396,44 L429,62 L462,88 L500,80 L500,120 L0,120 Z"/>
+            <path class="line1" d="M0,100 L33,85 L66,98 L99,70 L132,80 L165,52 L198,65 L231,32 L264,48 L297,76 L330,38 L363,18 L396,44 L429,62 L462,88 L500,80"/>
+            <path class="area2" d="M0,110 L33,104 L66,112 L99,94 L132,100 L165,80 L198,90 L231,62 L264,74 L297,98 L330,70 L363,52 L396,72 L429,86 L462,104 L500,98 L500,120 L0,120 Z"/>
+            <path class="line2" d="M0,110 L33,104 L66,112 L99,94 L132,100 L165,80 L198,90 L231,62 L264,74 L297,98 L330,70 L363,52 L396,72 L429,86 L462,104 L500,98"/>
+            <circle fill="#204CE5" cx="363" cy="18" r="4"/>
+            <circle fill="#10b981" cx="363" cy="52" r="3.5"/>
+          </svg>
+          <div class="flex justify-between text-[#686E77] text-xs mt-2">
+            <span>22 Feb</span><span>1 Mar</span><span>10 Mar</span><span>23 Mar</span>
+          </div>
+        </div>
+
+        <!-- Feed Live — solido, più spazioso -->
+        <div class="col-span-2 panel p-5 flex flex-col">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="font-bold text-[#112337]">Feed Live</h3>
+              <p class="text-[#686E77] text-xs">Aggiornamento in tempo reale</p>
+            </div>
+            <div class="flex items-center gap-1.5 text-emerald-600 text-xs font-bold">
+              <span class="live-dot w-2 h-2 bg-emerald-500 block"></span>Live
+            </div>
+          </div>
+          <div class="flex-1 space-y-2 overflow-y-auto" id="live-feed">
+            <div class="flex gap-3 p-3.5 rounded-xl border border-emerald-100 feed-item" style="background:#F0FDF4;">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+                   style="background:linear-gradient(135deg,#204CE5,#527EFF);">SE</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <p class="text-[#112337] text-sm font-semibold truncate">Sara Esposito</p>
+                  <span style="font-size:9px;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;padding:2px 7px;border-radius:9999px;flex-shrink:0;margin-left:6px;">LIVE</span>
+                </div>
+                <p class="text-[#686E77] text-xs">CEO · FinTech SRL</p>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:91%;"></div></div>
+                  <span class="text-[11px] font-bold text-emerald-600">91</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 p-3.5 rounded-xl border border-gray-100 feed-item" style="animation-delay:.08s">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 bg-violet-600">MF</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <p class="text-[#112337] text-sm font-semibold">Marco Ferrari</p>
+                  <span class="text-[#686E77] text-[10px] flex-shrink-0 ml-2">12 min</span>
+                </div>
+                <p class="text-[#686E77] text-xs">CFO · Acme SpA</p>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:87%;"></div></div>
+                  <span class="text-[11px] font-bold text-emerald-600">87</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 p-3.5 rounded-xl border border-gray-100 feed-item" style="animation-delay:.16s">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 bg-amber-500">LB</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <p class="text-[#112337] text-sm font-semibold">Laura Bianchi</p>
+                  <span class="text-[#686E77] text-[10px] flex-shrink-0 ml-2">28 min</span>
+                </div>
+                <p class="text-[#686E77] text-xs">HR Dir. · Innovate Srl</p>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full bg-amber-400" style="width:74%;"></div></div>
+                  <span class="text-[11px] font-bold text-amber-600">74</span>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 p-3.5 rounded-xl border border-gray-100 feed-item" style="animation-delay:.24s">
+              <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style="background:linear-gradient(135deg,#0891b2,#0ea5e9);">GR</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                  <p class="text-[#112337] text-sm font-semibold">Giovanni Russo</p>
+                  <span class="text-[#686E77] text-[10px] flex-shrink-0 ml-2">1 ora</span>
+                </div>
+                <p class="text-[#686E77] text-xs">CTO · TechVenture</p>
+                <div class="flex items-center gap-2 mt-1.5">
+                  <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:82%;"></div></div>
+                  <span class="text-[11px] font-bold text-emerald-600">82</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <button class="mt-3 w-full text-xs text-[#204CE5] font-semibold py-2 rounded-xl border border-blue-100 hover:bg-blue-50">Tutti i lead →</button>
+        </div>
+      </div>
+
+      <!-- TABLE SECTION with Tab Switcher -->
+      <div class="panel overflow-hidden">
+        <!-- Tab header -->
+        <div class="px-6 py-4 border-b border-gray-100">
+          <div class="flex items-center justify-between gap-4">
+            <!-- Tab switcher -->
+            <div class="flex gap-1 bg-gray-50 border border-gray-100 p-1 rounded-xl">
+              <button id="tabC-contatti" onclick="switchTabC('contatti')" class="flex items-center gap-2 text-xs font-bold text-white px-4 py-2 rounded-lg" style="background:#0077B5;">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                Contatti LinkedIn
+                <span id="badgeC-contatti" class="text-[10px] font-extrabold bg-white/25 text-white px-2 py-0.5 rounded-full">142</span>
+              </button>
+              <button id="tabC-aziende" onclick="switchTabC('aziende')" class="flex items-center gap-2 text-xs text-[#686E77] hover:text-[#7C3AED] px-4 py-2 rounded-lg">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+                Aziende
+                <span id="badgeC-aziende" class="text-[10px] font-extrabold bg-gray-200 text-[#686E77] px-2 py-0.5 rounded-full">87</span>
+              </button>
+            </div>
+            <!-- Filters Contatti -->
+            <div id="filtersC-contatti" class="flex items-center gap-2">
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Tutti gli status</option><option>Nuovo</option><option>Contattato</option><option>Qualificato</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Campagna</option><option>Fintech Q1</option><option>HR Directors</option><option>Nord CEO</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Score</option><option>≥ 80</option><option>≥ 60</option><option>Tutti</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Data</option><option>Oggi</option><option>Ieri</option><option>7 giorni</option>
+              </select>
+            </div>
+            <!-- Filters Aziende -->
+            <div id="filtersC-aziende" class="hidden flex items-center gap-2">
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Settore</option><option>SaaS</option><option>Fintech</option><option>HR Tech</option><option>CleanTech</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Dimensioni</option><option>10-50</option><option>50-200</option><option>200-500</option><option>500+</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Tutti gli status</option><option>Nuovo</option><option>Contattato</option><option>Qualificato</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Data</option><option>Oggi</option><option>Ieri</option><option>7 giorni</option>
+              </select>
+              <select class="text-xs text-[#686E77] border border-gray-200 rounded-lg px-3 py-1.5 bg-white focus:outline-none focus:border-[#204CE5]">
+                <option>Tutte le fonti</option><option>Apollo</option><option>Hunter.io</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Source header bars -->
+        <div id="sourceHeaderC-contatti" class="px-6 pt-3">
+          <div style="border-left:3px solid #0077B5;padding:8px 14px;background:rgba(0,119,181,0.06);border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#0077B5"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+            <span style="font-size:12px;font-weight:700;color:#0077B5;">Contatti LinkedIn</span>
+            <span style="font-size:11px;color:#888;margin-left:4px;">— Persone estratte tramite scraping profili</span>
+          </div>
+        </div>
+        <div id="sourceHeaderC-aziende" class="hidden px-6 pt-3">
+          <div style="border-left:3px solid #7C3AED;padding:8px 14px;background:rgba(124,58,237,0.06);border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            <span style="font-size:12px;font-weight:700;color:#7C3AED;">Aziende</span>
+            <span style="font-size:11px;color:#888;margin-left:4px;">— Aziende target estratte da fonti commerciali</span>
+          </div>
+        </div>
+
+        <!-- TABLE: Contatti LinkedIn (JS-rendered) -->
+        <div id="tableC-contatti">
+          <table class="w-full">
+            <thead>
+              <tr style="background:rgba(240,244,255,.5);border-bottom:1px solid rgba(32,76,229,.06);">
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-6 py-3">Nome</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Ruolo</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Azienda</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">LinkedIn</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Status</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Score</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Data</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Fonte</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="tbl" class="table-row-group"></tbody>
+          </table>
+        </div>
+
+        <!-- TABLE: Aziende (static) -->
+        <div id="tableC-aziende" class="hidden">
+          <table class="w-full">
+            <thead>
+              <tr style="background:rgba(240,244,255,.5);border-bottom:1px solid rgba(32,76,229,.06);">
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-6 py-3">Azienda</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Settore</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Dimensioni</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Sede</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Status</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Score</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Data</th>
+                <th class="text-left text-[10px] font-bold text-[#686E77] uppercase tracking-widest px-4 py-3">Fonte</th>
+                <th class="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody id="tbl-aziende"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- TOAST -->
+  <div id="toast" class="hidden fixed bottom-6 right-6 bg-white shadow-2xl px-5 py-4 rounded-2xl flex items-center gap-3 toast" style="border:1px solid rgba(32,76,229,.12);box-shadow:0 16px 48px rgba(32,76,229,.14);">
+    <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background:linear-gradient(135deg,#204CE5,#527EFF);">
+      <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    </div>
+    <div>
+      <p class="text-[#112337] text-sm font-bold">Nuovo lead arrivato</p>
+      <p class="text-[#686E77] text-xs">Sara Esposito · CEO · FinTech SRL · Score 91</p>
+    </div>
+    <div class="ml-2 flex items-center gap-2">
+      <button class="text-[#204CE5] text-xs font-bold border border-blue-100 px-2.5 py-1 rounded-lg hover:bg-blue-50">Vedi</button>
+      <button onclick="document.getElementById('toast').classList.add('hidden')" class="text-gray-300 hover:text-gray-500 p-1">
+        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+    </div>
+  </div>
+
+  <script>
+    function tsp(){document.getElementById('sp').classList.toggle('hidden');document.getElementById('ov').classList.toggle('hidden');}
+    function go(){tsp();}
+
+    const leads=[
+      {n:"Sara Esposito",  i:"SE", co:"FinTech SRL",  r:"CEO",       camp:"Fintech Q1",    s:"new",       sc:91, d:"Oggi, 14:22", isNew:true, g:"from-[#204CE5] to-[#527EFF]"},
+      {n:"Marco Ferrari",  i:"MF", co:"Acme SpA",     r:"CFO",       camp:"Fintech Q1",    s:"qualified", sc:87, d:"Oggi, 12:05", g:"from-violet-500 to-purple-700"},
+      {n:"Laura Bianchi",  i:"LB", co:"Innovate Srl", r:"HR Dir.",   camp:"HR Directors",  s:"contacted", sc:74, d:"Oggi, 10:30", g:"from-amber-500 to-orange-500"},
+      {n:"Giovanni Russo", i:"GR", co:"TechVenture",  r:"CTO",       camp:"Fintech Q1",    s:"qualified", sc:82, d:"Ieri, 16:15", g:"from-cyan-500 to-blue-600"},
+      {n:"Chiara Moretti", i:"CM", co:"StartupLab",   r:"CEO",       camp:"Nord CEO",      s:"new",       sc:68, d:"Ieri, 11:45", g:"from-pink-500 to-rose-600"},
+      {n:"Andrea Conti",   i:"AC", co:"MediaGroup",   r:"Mktg Dir.", camp:"HR Directors",  s:"contacted", sc:71, d:"Ieri, 09:20", g:"from-teal-500 to-emerald-600"},
+      {n:"Francesca R.",   i:"FR", co:"Consulta SPA", r:"Partner",   camp:"Nord CEO",      s:"new",       sc:65, d:"19 Mar",       g:"from-indigo-400 to-violet-600"},
+      {n:"Luca Marino",    i:"LM", co:"BuildTech SRL",r:"CEO",       camp:"Nord CEO",      s:"lost",      sc:42, d:"19 Mar",       g:"from-gray-400 to-gray-600"},
+    ];
+
+    const aziende=[
+      {co:"Acme SRL",      settore:"SaaS",      dim:"50-200",   sede:"Milano, IT",   s:"new",       sc:85, d:"Oggi, 09:15"},
+      {co:"TechVenture",   settore:"Fintech",   dim:"200-500",  sede:"Roma, IT",     s:"contacted", sc:72, d:"Oggi, 08:30"},
+      {co:"StartupHub",    settore:"HR Tech",   dim:"10-50",    sede:"Torino, IT",   s:"new",       sc:68, d:"Ieri, 17:00"},
+      {co:"GreenCorp",     settore:"CleanTech", dim:"50-200",   sede:"Bologna, IT",  s:"qualified", sc:91, d:"Ieri, 14:20"},
+      {co:"MediaGroup",    settore:"Media",     dim:"500-1000", sede:"Milano, IT",   s:"new",       sc:63, d:"2 gg fa"},
+    ];
+
+    const ST={
+      new:      {l:"Nuovo",       bg:"rgba(32,76,229,.08)",   c:"#204CE5",  b:"rgba(32,76,229,.2)"},
+      contacted:{l:"Contattato",  bg:"rgba(217,119,6,.08)",   c:"#B45309",  b:"rgba(217,119,6,.25)"},
+      qualified:{l:"Qualificato", bg:"rgba(5,150,105,.08)",   c:"#047857",  b:"rgba(5,150,105,.25)"},
+      lost:     {l:"Perso",       bg:"rgba(107,114,128,.08)", c:"#6B7280",  b:"rgba(107,114,128,.2)"},
+    };
+
+    const liIcon=`<svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>`;
+
+    const tbody=document.getElementById("tbl");
+    leads.forEach(l=>{
+      const st=ST[l.s];
+      const sc=l.sc>=80?"#059669":l.sc>=60?"#D97706":"#9CA3AF";
+      const rb=l.isNew?"background:rgba(32,76,229,.025);":"";
+      tbody.innerHTML+=`
+        <tr class="table-row cursor-pointer" style="${rb}">
+          <td class="px-6">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 bg-gradient-to-br ${l.g} rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">${l.i}</div>
+              <div>
+                <div class="text-[#112337] text-sm font-semibold flex items-center gap-1.5">${l.n}
+                  ${l.isNew?'<span style="font-size:9px;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;padding:1px 6px;border-radius:9999px;">LIVE</span>':''}
+                </div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 text-[#686E77] text-sm">${l.r}</td>
+          <td class="px-4 text-[#112337] text-sm">${l.co}</td>
+          <td class="px-4"><a href="#" class="flex items-center gap-1.5 text-xs font-medium text-[#204CE5] hover:underline">${liIcon}Profilo</a></td>
+          <td class="px-4"><span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:${st.bg};color:${st.c};border:1px solid ${st.b};">${st.l}</span></td>
+          <td class="px-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-20 rounded-full h-1.5 overflow-hidden" style="background:rgba(0,0,0,.06);">
+                <div class="h-full rounded-full prog" style="--w:${l.sc}%;background:${sc};"></div>
+              </div>
+              <span class="text-sm font-bold" style="color:${sc};">${l.sc}</span>
+            </div>
+          </td>
+          <td class="px-4 text-[#686E77] text-xs">${l.d}</td>
+          <td class="px-4"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+          <td class="px-4">
+            ${l.s==='new'
+              ?`<button class="text-xs font-bold text-[#204CE5] border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg">Qualifica →</button>`
+              :`<button class="text-[#686E77] hover:text-[#204CE5] p-1 rounded-lg hover:bg-blue-50"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>`}
+          </td>
+        </tr>`;
+    });
+
+    // Render Aziende table
+    const tbodyAz=document.getElementById("tbl-aziende");
+    aziende.forEach(a=>{
+      const st=ST[a.s];
+      const sc=a.sc>=80?"#059669":a.sc>=60?"#D97706":"#9CA3AF";
+      tbodyAz.innerHTML+=`
+        <tr class="table-row cursor-pointer">
+          <td class="px-6">
+            <div class="text-[#112337] text-sm font-semibold">${a.co}</div>
+          </td>
+          <td class="px-4 text-[#686E77] text-sm">${a.settore}</td>
+          <td class="px-4 text-[#686E77] text-sm">${a.dim}</td>
+          <td class="px-4 text-[#686E77] text-sm">${a.sede}</td>
+          <td class="px-4"><span class="text-xs font-semibold px-3 py-1 rounded-full" style="background:${st.bg};color:${st.c};border:1px solid ${st.b};">${st.l}</span></td>
+          <td class="px-4">
+            <div class="flex items-center gap-2.5">
+              <div class="w-20 rounded-full h-1.5 overflow-hidden" style="background:rgba(0,0,0,.06);">
+                <div class="h-full rounded-full prog" style="--w:${a.sc}%;background:${sc};"></div>
+              </div>
+              <span class="text-sm font-bold" style="color:${sc};">${a.sc}</span>
+            </div>
+          </td>
+          <td class="px-4 text-[#686E77] text-xs">${a.d}</td>
+          <td class="px-4"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+          <td class="px-4">
+            ${a.s==='new'
+              ?`<button class="text-xs font-bold text-[#204CE5] border border-blue-200 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg">Qualifica →</button>`
+              :`<button class="text-[#686E77] hover:text-[#204CE5] p-1 rounded-lg hover:bg-blue-50"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></button>`}
+          </td>
+        </tr>`;
+    });
+
+    setTimeout(()=>document.getElementById('toast').classList.remove('hidden'),2500);
+
+    // Nuovo lead live dopo 5s
+    setTimeout(()=>{
+      const feed=document.getElementById('live-feed');
+      const el=document.createElement('div');
+      el.className='flex gap-3 p-3.5 rounded-xl border border-emerald-100 feed-item';
+      el.style.background='#F0FDF4';
+      el.innerHTML=`
+        <div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style="background:linear-gradient(135deg,#f97316,#ef4444);">NL</div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between">
+            <p class="text-[#112337] text-sm font-semibold">Nuovo Lead</p>
+            <span style="font-size:9px;font-weight:700;color:#059669;background:#F0FDF4;border:1px solid #BBF7D0;padding:2px 7px;border-radius:9999px;flex-shrink:0;margin-left:6px;">LIVE</span>
+          </div>
+          <p class="text-[#686E77] text-xs">CEO · NextGen SRL</p>
+          <div class="flex items-center gap-2 mt-1.5">
+            <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden"><div class="h-full rounded-full bg-emerald-500" style="width:89%;"></div></div>
+            <span class="text-[11px] font-bold text-emerald-600">89</span>
+          </div>
+        </div>`;
+      feed.insertBefore(el,feed.firstChild);
+    },5000);
+
+    function switchTabC(tab) {
+      const isContatti = tab === 'contatti';
+      // Sidebar active state
+      document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+      const navContatti = document.getElementById('navC-contatti');
+      const navAziende = document.getElementById('navC-aziende');
+      if (isContatti) {
+        navContatti && navContatti.classList.add('active');
+        navContatti && (navContatti.style.color = '#0077B5');
+        navAziende && (navAziende.style.color = '#686E77');
+        const h1 = document.querySelector('h1.font-bold');
+        if (h1) h1.textContent = 'Contatti LinkedIn';
+      } else {
+        navAziende && navAziende.classList.add('active');
+        navAziende && (navAziende.style.color = '#7C3AED');
+        navContatti && (navContatti.style.color = '#686E77');
+        const h1 = document.querySelector('h1.font-bold');
+        if (h1) h1.textContent = 'Aziende';
+      }
+      // Tables
+      document.getElementById('tableC-contatti').classList.toggle('hidden', !isContatti);
+      document.getElementById('tableC-aziende').classList.toggle('hidden', isContatti);
+      // Filters
+      document.getElementById('filtersC-contatti').classList.toggle('hidden', !isContatti);
+      document.getElementById('filtersC-aziende').classList.toggle('hidden', isContatti);
+      // Source header bars
+      document.getElementById('sourceHeaderC-contatti').classList.toggle('hidden', !isContatti);
+      document.getElementById('sourceHeaderC-aziende').classList.toggle('hidden', isContatti);
+      // Tabs styling — LinkedIn blue for contatti, Apollo purple for aziende
+      const btnC = document.getElementById('tabC-contatti');
+      const btnA = document.getElementById('tabC-aziende');
+      const badgeC = document.getElementById('badgeC-contatti');
+      const badgeA = document.getElementById('badgeC-aziende');
+      if (isContatti) {
+        btnC.style.background = '#0077B5';
+        btnC.className = 'flex items-center gap-2 text-xs font-bold text-white px-4 py-2 rounded-lg';
+        badgeC.className = 'text-[10px] font-extrabold bg-white/25 text-white px-2 py-0.5 rounded-full';
+        btnA.style.background = '';
+        btnA.className = 'flex items-center gap-2 text-xs text-[#686E77] hover:text-[#7C3AED] px-4 py-2 rounded-lg';
+        badgeA.className = 'text-[10px] font-extrabold bg-gray-200 text-[#686E77] px-2 py-0.5 rounded-full';
+      } else {
+        btnA.style.background = '#7C3AED';
+        btnA.className = 'flex items-center gap-2 text-xs font-bold text-white px-4 py-2 rounded-lg';
+        badgeA.className = 'text-[10px] font-extrabold bg-white/25 text-white px-2 py-0.5 rounded-full';
+        btnC.style.background = '';
+        btnC.className = 'flex items-center gap-2 text-xs text-[#686E77] hover:text-[#0077B5] px-4 py-2 rounded-lg';
+        badgeC.className = 'text-[10px] font-extrabold bg-gray-200 text-[#686E77] px-2 py-0.5 rounded-full';
+      }
+    }
+  </script>
+</body>
+</html>

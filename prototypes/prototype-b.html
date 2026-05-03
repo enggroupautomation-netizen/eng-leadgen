@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ENG Platform — Concept B: Onyx</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0B1120; color: #E4EAF2; min-height: 100vh; }
+
+    @keyframes kpi-in { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes card-in { from { opacity:0; transform:translateY(14px) scale(.98); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes live-glow { 0%,100% { box-shadow:0 0 0 0 rgba(52,211,153,.5); } 60% { box-shadow:0 0 0 7px rgba(52,211,153,0); } }
+    @keyframes prog { from { width:0; } to { width:var(--w); } }
+    @keyframes shimmer { 0% { width:48%; } 100% { width:82%; } }
+    @keyframes toast-in { from { opacity:0; transform:translateY(14px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes chart-draw { from { clip-path:inset(0 100% 0 0); } to { clip-path:inset(0 0% 0 0); } }
+    @keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(.82); } }
+    @keyframes feed-slide { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+
+    .live-dot { width:8px; height:8px; background:#34d399; border-radius:50%; animation:live-glow 2s ease-in-out infinite; }
+
+    /* Layout */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #0F1829;
+      border-right: 1px solid rgba(32,76,229,.2);
+      box-shadow: 4px 0 24px rgba(32,76,229,.08);
+      position: fixed; top:0; left:0;
+      display: flex; flex-direction: column; z-index: 20;
+    }
+    .main-content { margin-left: 240px; }
+
+    /* Top stats bar */
+    .stats-bar {
+      background: #0F1829;
+      border-bottom: 1px solid rgba(32,76,229,.25);
+      padding: 0 32px;
+      display: flex; align-items: stretch;
+      height: 80px;
+    }
+    .stat-block {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 0 28px; border-right: 1px solid rgba(32,76,229,.15);
+      animation: kpi-in .55s cubic-bezier(.34,1.56,.64,1) forwards; opacity: 0;
+    }
+    .stat-block:first-child { padding-left: 0; }
+    .stat-block:nth-child(1){ animation-delay:.06s; }
+    .stat-block:nth-child(2){ animation-delay:.13s; }
+    .stat-block:nth-child(3){ animation-delay:.20s; }
+    .stat-block:nth-child(4){ animation-delay:.27s; }
+
+    /* Nav */
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 16px; border-radius: 10px;
+      font-size: 13.5px; font-weight: 500; color: #6B7A8A;
+      cursor: pointer; transition: all .15s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #C8D4E0; }
+    .nav-item.active {
+      background: rgba(32,76,229,.18);
+      color: #5B8FFF;
+      font-weight: 600;
+      border-left: 3px solid #204CE5;
+      padding-left: 13px;
+    }
+    .nav-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0;
+    }
+    .nav-item.active .nav-icon { background: #204CE5; }
+    .nav-item:not(.active) .nav-icon { background: rgba(255,255,255,.05); }
+
+    /* Panel card */
+    .panel {
+      background: #131E30;
+      border: 1px solid rgba(32,76,229,.15);
+      border-radius: 16px;
+    }
+
+    /* Lead card (grid) */
+    .lead-card {
+      background: #131E30;
+      border: 1px solid rgba(32,76,229,.15);
+      border-radius: 14px;
+      padding: 18px;
+      cursor: pointer;
+      transition: all .2s;
+      animation: card-in .45s cubic-bezier(.34,1.56,.64,1) forwards;
+      opacity: 0;
+    }
+    .lead-card:hover {
+      background: #1A2840;
+      border-color: #204CE5;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,.3), 0 0 0 1px rgba(32,76,229,.4);
+    }
+    .lead-card:nth-child(1){ animation-delay:.1s; }
+    .lead-card:nth-child(2){ animation-delay:.17s; }
+    .lead-card:nth-child(3){ animation-delay:.24s; }
+    .lead-card:nth-child(4){ animation-delay:.31s; }
+    .lead-card:nth-child(5){ animation-delay:.38s; }
+    .lead-card:nth-child(6){ animation-delay:.45s; }
+    .lead-card:nth-child(7){ animation-delay:.52s; }
+    .lead-card:nth-child(8){ animation-delay:.59s; }
+
+    /* Badges dark */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-new { background: rgba(32,76,229,.25); color: #6B9DFF; border: 1px solid rgba(32,76,229,.35); }
+    .badge-qualified { background: rgba(16,185,129,.2); color: #34d399; border: 1px solid rgba(16,185,129,.3); }
+    .badge-contact { background: rgba(217,119,6,.2); color: #FCD34D; border: 1px solid rgba(217,119,6,.3); }
+    .badge-cold { background: rgba(255,255,255,.06); color: #6B7A8A; border: 1px solid rgba(255,255,255,.1); }
+    .badge-hot { background: rgba(255,102,0,.2); color: #FF8C38; border: 1px solid rgba(255,102,0,.3); }
+
+    /* Score bar dark */
+    .score-bar {
+      height: 4px; background: rgba(255,255,255,.1);
+      border-radius: 2px; overflow: hidden;
+    }
+    .score-fill {
+      height: 100%; border-radius: 2px;
+      background: linear-gradient(90deg, #204CE5, #5B8FFF);
+      animation: prog 1s cubic-bezier(.34,1.56,.64,1) .5s forwards; width: 0;
+    }
+    .score-fill-hot { background: linear-gradient(90deg, #FF6600, #FF8C38); }
+
+    /* Banner */
+    .banner {
+      background: linear-gradient(90deg, #204CE5, #2F5CF7);
+      border-radius: 13px; padding: 14px 20px; color: white;
+      display: flex; align-items: center; gap: 14px; margin-bottom: 24px;
+    }
+    .banner-prog { flex:1; height:3px; background:rgba(255,255,255,.25); border-radius:2px; overflow:hidden; }
+    .banner-fill { height:100%; background:white; border-radius:2px; width:62%; animation:shimmer 3s ease-in-out infinite alternate; }
+
+    /* Chart */
+    .chart-wrap { animation: chart-draw 1.4s ease .4s forwards; clip-path: inset(0 100% 0 0); }
+
+    /* Feed item */
+    .feed-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; border-radius: 12px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+      transition: all .15s; cursor: pointer;
+      animation: feed-slide .4s ease forwards; opacity: 0;
+    }
+    .feed-item:hover { background: rgba(32,76,229,.12); border-color: rgba(32,76,229,.25); }
+    .feed-item:nth-child(1){ animation-delay:.1s; }
+    .feed-item:nth-child(2){ animation-delay:.2s; }
+    .feed-item:nth-child(3){ animation-delay:.3s; }
+    .feed-item:nth-child(4){ animation-delay:.4s; }
+    .feed-item:nth-child(5){ animation-delay:.5s; }
+
+    /* Campaign item */
+    .campaign-item {
+      padding: 14px 16px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.07);
+      background: rgba(255,255,255,.03);
+      transition: all .15s;
+    }
+    .campaign-item:hover { background: rgba(255,255,255,.05); }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom:28px; right:28px;
+      background: #1A2840;
+      border: 1px solid rgba(32,76,229,.4);
+      border-radius: 16px; padding: 16px 20px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.5);
+      display: flex; align-items: center; gap: 14px;
+      z-index: 100; max-width: 340px;
+      border-left: 4px solid #204CE5;
+      opacity: 0; transform: translateY(14px);
+      transition: all .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .toast.show { opacity:1; transform:translateY(0); }
+
+    /* Search panel */
+    .search-panel {
+      position: fixed; right:0; top:0; bottom:0; width:380px;
+      background: #0F1829;
+      border-left: 1px solid rgba(255,255,255,.08);
+      box-shadow: -16px 0 64px rgba(0,0,0,.5);
+      z-index: 50; transform: translateX(100%);
+      transition: transform .3s cubic-bezier(.4,0,.2,1);
+      padding: 32px; overflow-y: auto;
+    }
+    .search-panel.open { transform: translateX(0); }
+
+    .input-dark {
+      width:100%; padding:12px 16px;
+      border-radius: 12px;
+      border: 1.5px solid rgba(255,255,255,.1);
+      background: rgba(255,255,255,.05);
+      font-size: 14px; color: #E4EAF2;
+      font-family: Inter, sans-serif; outline: none;
+      transition: border-color .15s;
+    }
+    .input-dark::placeholder { color: #4B5B6E; }
+    .input-dark:focus { border-color: #204CE5; background: rgba(32,76,229,.08); }
+    .input-dark option { background: #1A2840; color: #E4EAF2; }
+
+    /* Avatar gradient map */
+    .av-blue { background: linear-gradient(135deg,#204CE5,#527EFF); }
+    .av-violet { background: linear-gradient(135deg,#7C3AED,#A78BFA); }
+    .av-green { background: linear-gradient(135deg,#059669,#34d399); }
+    .av-amber { background: linear-gradient(135deg,#D97706,#FCD34D); }
+    .av-pink { background: linear-gradient(135deg,#BE185D,#F472B6); }
+    .av-teal { background: linear-gradient(135deg,#0891B2,#22D3EE); }
+    .av-red { background: linear-gradient(135deg,#DC2626,#F87171); }
+    .av-indigo { background: linear-gradient(135deg,#4338CA,#818CF8); }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div style="padding:22px 20px 20px;border-bottom:1px solid rgba(255,255,255,.06);">
+    <div style="background:white;border-radius:8px;padding:6px 10px;display:inline-flex;align-items:center;">
+      <img src="https://www.enggroup.it/wp-content/uploads/2026/02/logo-eng.jpg" alt="ENG" style="height:22px;object-fit:contain;" onerror="this.parentElement.style.display='none';this.parentElement.nextElementSibling.style.display='flex'">
+    </div>
+    <div style="display:none;align-items:center;gap:9px;">
+      <div style="width:32px;height:32px;background:#204CE5;border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:14px;">E</div>
+      <span style="font-size:15px;font-weight:700;color:white;">ENG Group</span>
+    </div>
+  </div>
+
+  <div style="padding:18px 12px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#3D4F63;text-transform:uppercase;padding:0 8px;margin-bottom:8px;">Persone</div>
+    <div id="navB-contatti" class="nav-item" onclick="switchTabB('contatti')" style="cursor:pointer;">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#0077B5;flex-shrink:0;margin-right:2px;"></span>
+      <span class="nav-icon">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </span>Contatti LinkedIn
+      <span style="margin-left:auto;background:rgba(0,119,181,.3);color:#5BBFFF;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">142</span>
+    </div>
+
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#3D4F63;text-transform:uppercase;padding:0 8px;margin-top:14px;margin-bottom:8px;">Aziende</div>
+    <div id="navB-aziende" class="nav-item" onclick="switchTabB('aziende')" style="cursor:pointer;">
+      <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#7C3AED;flex-shrink:0;margin-right:2px;"></span>
+      <span class="nav-icon">
+        <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      </span>Aziende
+      <span style="margin-left:auto;background:rgba(124,58,237,.3);color:#C4A0FF;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;">87</span>
+    </div>
+
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#3D4F63;text-transform:uppercase;padding:0 8px;margin-top:14px;margin-bottom:8px;">Gestione</div>
+    <div class="nav-item active">
+      <span class="nav-icon">📊</span>Dashboard
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">🎯</span>Campagne
+    </div>
+  </div>
+
+  <div style="padding:0 12px 16px;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#3D4F63;text-transform:uppercase;padding:0 8px;margin-bottom:8px;">Sistema</div>
+    <div class="nav-item">
+      <span class="nav-icon">⚙️</span>Impostazioni
+    </div>
+    <div class="nav-item">
+      <span class="nav-icon">👤</span>Profilo
+    </div>
+  </div>
+
+  <!-- Campaigns mini-list -->
+  <div style="padding:0 12px 16px;flex:1;">
+    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;color:#3D4F63;text-transform:uppercase;padding:0 8px;margin-bottom:10px;">Campagne Attive</div>
+    <div class="campaign-item" style="margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#34d399;animation:live-glow 2s ease-in-out infinite;flex-shrink:0;"></div>
+        <span style="font-size:12.5px;font-weight:600;color:#C8D4E0;">Q1 2026 — Fintech</span>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
+        <div style="width:62%;height:100%;background:#204CE5;border-radius:2px;animation:shimmer 3s ease-in-out infinite alternate;"></div>
+      </div>
+      <div style="font-size:11px;color:#4B5B6E;margin-top:5px;">38 / ~100 lead</div>
+    </div>
+    <div class="campaign-item" style="margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#6B9DFF;flex-shrink:0;"></div>
+        <span style="font-size:12.5px;font-weight:600;color:#C8D4E0;">HR Q1 2025</span>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
+        <div style="width:100%;height:100%;background:rgba(52,211,153,.5);border-radius:2px;"></div>
+      </div>
+      <div style="font-size:11px;color:#4B5B6E;margin-top:5px;">212 lead · completata</div>
+    </div>
+    <div class="campaign-item">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#FCD34D;flex-shrink:0;"></div>
+        <span style="font-size:12.5px;font-weight:600;color:#C8D4E0;">Tech Q1 2026</span>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;">
+        <div style="width:24%;height:100%;background:#D97706;border-radius:2px;"></div>
+      </div>
+      <div style="font-size:11px;color:#4B5B6E;margin-top:5px;">97 / ~400 lead</div>
+    </div>
+  </div>
+
+  <div style="padding:16px 20px;border-top:1px solid rgba(255,255,255,.06);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="av-blue" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:13px;flex-shrink:0;">ND</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#C8D4E0;">Nicolò Dal Zotto</div>
+        <div style="font-size:11px;color:#4B5B6E;">Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main-content">
+
+  <!-- STATS BAR (top) -->
+  <div class="stats-bar">
+    <div class="stat-block" style="border-left:3px solid #0077B5;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+        <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#0077B5;"></span>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5B7099;">Contatti oggi</div>
+      </div>
+      <div style="font-size:26px;font-weight:900;color:#5BBFFF;letter-spacing:-1px;line-height:1;">18</div>
+      <div style="font-size:11px;color:#34d399;margin-top:3px;font-weight:600;">+5 vs ieri</div>
+    </div>
+    <div class="stat-block" style="border-left:3px solid #7C3AED;">
+      <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+        <span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#7C3AED;"></span>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5B7099;">Aziende oggi</div>
+      </div>
+      <div style="font-size:26px;font-weight:900;color:#C4A0FF;letter-spacing:-1px;line-height:1;">12</div>
+      <div style="font-size:11px;color:#34d399;margin-top:3px;font-weight:600;">+3 vs ieri</div>
+    </div>
+    <div class="stat-block">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5B7099;margin-bottom:4px;">Qualificati</div>
+      <div style="font-size:26px;font-weight:900;color:#5B8FFF;letter-spacing:-1px;line-height:1;">312</div>
+      <div style="font-size:11px;color:#34d399;margin-top:3px;font-weight:600;">↑ +8 questa settimana</div>
+    </div>
+    <div class="stat-block" style="border-right:none;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5B7099;margin-bottom:4px;">Hot Leads</div>
+      <div style="font-size:26px;font-weight:900;color:#FF8C38;letter-spacing:-1px;line-height:1;">42</div>
+      <div style="font-size:11px;color:#FF6600;margin-top:3px;font-weight:600;">Score ≥ 80</div>
+    </div>
+    <!-- spacer + actions -->
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(52,211,153,.15);color:#34d399;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1px solid rgba(52,211,153,.25);">
+        <span class="live-dot" style="width:7px;height:7px;"></span>LIVE · 38 oggi
+      </div>
+      <button onclick="togglePanel()" style="background:#204CE5;color:white;border:none;padding:10px 20px;border-radius:11px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(32,76,229,.4);">
+        <span>⚡</span>Nuova Ricerca
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div style="padding:28px 32px;">
+
+    <!-- BANNER -->
+    <div class="banner">
+      <div style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">⚡</div>
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;">Ricerca in corso — "CEO Fintech Milano"
+          <span style="font-weight:400;opacity:.75;font-size:13px;"> · 38 profili trovati</span>
+        </div>
+        <div class="banner-prog"><div class="banner-fill"></div></div>
+      </div>
+      <div style="font-size:12px;opacity:.7;white-space:nowrap;">Campagna Q1 2026</div>
+      <button onclick="this.closest('.banner').style.display='none'" style="background:rgba(255,255,255,.15);border:none;color:white;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+    </div>
+
+    <!-- CHART + FEED ROW -->
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;margin-bottom:28px;">
+      <!-- Chart -->
+      <div class="panel" style="padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:white;">Andamento Lead</div>
+            <div style="font-size:12px;color:#4B5B6E;margin-top:2px;">Ultimi 30 giorni</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:18px;font-size:12px;color:#4B5B6E;">
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:18px;height:2px;background:#527EFF;border-radius:2px;"></span>Totali</span>
+            <span style="display:flex;align-items:center;gap:6px;"><span style="display:inline-block;width:18px;height:0;border-bottom:2px dashed #34d399;"></span>Qualificati</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg viewBox="0 0 560 165" width="100%" height="165">
+            <defs>
+              <linearGradient id="blueGradO" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#204CE5" stop-opacity=".3"/>
+                <stop offset="100%" stop-color="#204CE5" stop-opacity="0"/>
+              </linearGradient>
+              <linearGradient id="greenGradO" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#10b981" stop-opacity=".15"/>
+                <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="0" x2="560" y2="0" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <line x1="0" y1="40" x2="560" y2="40" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <line x1="0" y1="80" x2="560" y2="80" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <line x1="0" y1="120" x2="560" y2="120" stroke="rgba(255,255,255,.05)" stroke-width="1"/>
+            <path d="M0,135 C50,126 100,110 150,97 C200,84 250,75 300,61 C350,47 400,39 450,28 C490,20 530,14 560,9 L560,165 L0,165 Z" fill="url(#blueGradO)"/>
+            <path d="M0,150 C50,143 100,137 150,130 C200,123 250,116 300,109 C350,101 400,96 450,89 C490,84 530,79 560,74 L560,165 L0,165 Z" fill="url(#greenGradO)"/>
+            <path d="M0,135 C50,126 100,110 150,97 C200,84 250,75 300,61 C350,47 400,39 450,28 C490,20 530,14 560,9" fill="none" stroke="#527EFF" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M0,150 C50,143 100,137 150,130 C200,123 250,116 300,109 C350,101 400,96 450,89 C490,84 530,79 560,74" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="5,4" stroke-linecap="round"/>
+            <text x="0" y="162" font-size="10" fill="rgba(255,255,255,.3)" font-family="Inter">22 Feb</text>
+            <text x="133" y="162" font-size="10" fill="rgba(255,255,255,.3)" font-family="Inter">1 Mar</text>
+            <text x="272" y="162" font-size="10" fill="rgba(255,255,255,.3)" font-family="Inter">8 Mar</text>
+            <text x="410" y="162" font-size="10" fill="rgba(255,255,255,.3)" font-family="Inter">15 Mar</text>
+            <text x="533" y="162" font-size="10" fill="rgba(255,255,255,.3)" font-family="Inter">23 Mar</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Live Feed -->
+      <div class="panel" style="padding:20px;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <span style="font-size:14px;font-weight:700;color:white;">Live Feed</span>
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#34d399;background:rgba(52,211,153,.12);padding:4px 10px;border-radius:20px;border:1px solid rgba(52,211,153,.2);">
+            <span class="live-dot" style="width:6px;height:6px;animation:pulse-dot 1.5s ease-in-out infinite;"></span>38 oggi
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px;">
+          <div class="feed-item">
+            <div class="av-blue" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:12px;flex-shrink:0;">AL</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#C8D4E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Alessandro Rossi</div>
+              <div style="font-size:11px;color:#4B5B6E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">CEO · Fintech Milano</div>
+              <div style="margin-top:6px;"><div class="score-bar"><div class="score-fill" style="--w:82%;"></div></div></div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#5B8FFF;flex-shrink:0;">82</span>
+          </div>
+          <div class="feed-item">
+            <div class="av-violet" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:12px;flex-shrink:0;">MF</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#C8D4E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Marco Ferrari</div>
+              <div style="font-size:11px;color:#4B5B6E;">CFO · SaaS Roma</div>
+              <div style="margin-top:6px;"><div class="score-bar"><div class="score-fill" style="--w:75%;animation-delay:.55s;"></div></div></div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#5B8FFF;flex-shrink:0;">75</span>
+          </div>
+          <div class="feed-item">
+            <div class="av-amber" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:12px;flex-shrink:0;">LC</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#C8D4E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Luca Conti</div>
+              <div style="font-size:11px;color:#4B5B6E;">CTO · PropTech</div>
+              <div style="margin-top:6px;"><div class="score-bar"><div class="score-fill score-fill-hot" style="--w:91%;animation-delay:.6s;"></div></div></div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#FF8C38;flex-shrink:0;">91 🔥</span>
+          </div>
+          <div class="feed-item">
+            <div class="av-green" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:12px;flex-shrink:0;">SB</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#C8D4E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Sara Bianchi</div>
+              <div style="font-size:11px;color:#4B5B6E;">HR Director · HR Tech</div>
+              <div style="margin-top:6px;"><div class="score-bar"><div class="score-fill" style="--w:69%;animation-delay:.65s;"></div></div></div>
+            </div>
+            <span style="font-size:12px;font-weight:800;color:#5B8FFF;flex-shrink:0;">69</span>
+          </div>
+          <div id="newFeedItem" class="feed-item" style="display:none;border-color:rgba(255,102,0,.3);background:rgba(255,102,0,.06);">
+            <div class="av-pink" style="width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:12px;flex-shrink:0;">PM</div>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#C8D4E0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Paolo Moretti</div>
+              <div style="font-size:11px;color:#4B5B6E;">CEO · Biotech Torino</div>
+              <div style="margin-top:6px;"><div class="score-bar"><div class="score-fill score-fill-hot" style="width:88%;"></div></div></div>
+            </div>
+            <span style="font-size:10px;font-weight:700;color:#FF8C38;background:rgba(255,102,0,.2);padding:2px 7px;border-radius:8px;border:1px solid rgba(255,102,0,.3);flex-shrink:0;">HOT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEADS SECTION with Tab Switcher -->
+    <div>
+      <!-- Tab switcher + filters row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;">
+        <div style="display:flex;gap:3px;background:#0B1120;border:1px solid rgba(32,76,229,.2);border-radius:11px;padding:3px;">
+          <button id="tabB-contatti" onclick="switchTabB('contatti')" style="padding:8px 16px;border-radius:9px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:#0077B5;color:white;display:flex;align-items:center;gap:7px;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            Contatti LinkedIn
+            <span style="background:rgba(255,255,255,.25);color:white;font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;">142</span>
+          </button>
+          <button id="tabB-aziende" onclick="switchTabB('aziende')" style="padding:8px 16px;border-radius:9px;border:none;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#4B5B6E;display:flex;align-items:center;gap:7px;">
+            <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+            Aziende
+            <span style="background:rgba(255,255,255,.08);color:#4B5B6E;font-size:10px;font-weight:800;padding:1px 7px;border-radius:20px;">87</span>
+          </button>
+        </div>
+        <!-- Filters Contatti -->
+        <div id="filtersB-contatti" style="display:flex;gap:6px;">
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Tutti gli status</option><option>Nuovo</option><option>Contattato</option><option>Qualificato</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Campagna</option><option>Q1 2026</option><option>HR Q1</option><option>Tech Q2</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Score</option><option>≥ 80</option><option>≥ 60</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Data</option><option>Oggi</option><option>Ieri</option><option>7 giorni</option>
+          </select>
+        </div>
+        <!-- Filters Aziende -->
+        <div id="filtersB-aziende" style="display:none;gap:6px;">
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Settore</option><option>SaaS</option><option>Fintech</option><option>HR Tech</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Dimensioni</option><option>10-50</option><option>50-200</option><option>200-500</option><option>500+</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Tutti gli status</option><option>Nuovo</option><option>Contattato</option><option>Qualificato</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Data</option><option>Oggi</option><option>Ieri</option><option>7 giorni</option>
+          </select>
+          <select style="padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.04);font-size:12px;color:#4B5B6E;cursor:pointer;">
+            <option>Tutte le fonti</option><option>Apollo</option><option>Hunter.io</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Source header bars -->
+      <div id="sourceHeaderB-contatti" style="margin-bottom:0;">
+        <div style="border-left:3px solid #0077B5;padding:8px 14px;background:rgba(0,119,181,0.1);border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#5BBFFF"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+          <span style="font-size:12px;font-weight:700;color:#5BBFFF;">Contatti LinkedIn</span>
+          <span style="font-size:11px;color:#4B5B6E;margin-left:4px;">— Persone estratte tramite scraping profili</span>
+          <span style="margin-left:auto;font-size:10px;color:#6B7A8A;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            Aggiornato via n8n · 23 Mar 2026
+          </span>
+        </div>
+      </div>
+      <div id="sourceHeaderB-aziende" style="display:none;margin-bottom:0;">
+        <div style="border-left:3px solid #7C3AED;padding:8px 14px;background:rgba(124,58,237,0.1);border-radius:0 6px 6px 0;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C4A0FF" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          <span style="font-size:12px;font-weight:700;color:#C4A0FF;">Aziende</span>
+          <span style="font-size:11px;color:#4B5B6E;margin-left:4px;">— Aziende target estratte da fonti commerciali</span>
+          <span style="margin-left:auto;font-size:10px;color:#6B7A8A;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:20px;display:flex;align-items:center;gap:4px;">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+            Aggiornato via n8n · 23 Mar 2026
+          </span>
+        </div>
+      </div>
+
+      <!-- TABLE: Contatti LinkedIn -->
+      <div id="tableB-contatti" class="panel" style="overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(32,76,229,.15);">
+                <th style="width:24px;padding:0 4px;"></th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Nome</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Ruolo</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Azienda</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">LinkedIn</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Score</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 10px;text-align:left;">Dati</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Status</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Data</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Fonte</th>
+                <th style="padding:12px 18px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Row 1: Alessandro Rossi — email=yes, phone=yes, verified=yes — 92% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Alessandro Rossi</div><div style="font-size:11px;color:#3D4F63;">Milano, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">CEO</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Fintech Srl</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:82%;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">82</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:92%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">92%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Oggi, 09:32</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 a.rossi@fintechsrl.it <span style="color:#16a34a;font-size:10px;">✓ verificata</span></span>
+                        <span>📞 +39 333 1111111</span>
+                        <span>🔗 linkedin.com/in/alessandrorossi</span>
+                        <span>📍 Milano, Lombardia, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 Fintech Srl — 85 dipendenti</span>
+                        <span>💼 Settore: Fintech / B2B</span>
+                        <span>💰 Revenue: €10M–€50M</span>
+                        <span>⚙️ Stack: Salesforce, AWS, Stripe</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 23 Mar 2026 09:32</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 2: Marco Ferrari — email=yes, phone=no, verified=yes — 78% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Marco Ferrari</div><div style="font-size:11px;color:#3D4F63;">Roma, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">CFO</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">SaaS Corp</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:75%;animation-delay:.5s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">75</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:78%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">78%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Oggi, 08:55</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 marco.ferrari@saascorp.it <span style="color:#16a34a;font-size:10px;">✓ verificata</span></span>
+                        <span style="color:#6B7A8A;">📞 non disponibile</span>
+                        <span>🔗 linkedin.com/in/marcoferrari</span>
+                        <span>📍 Roma, Lazio, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 SaaS Corp — 120 dipendenti</span>
+                        <span>💼 Settore: SaaS / B2B</span>
+                        <span>💰 Revenue: €5M–€20M</span>
+                        <span>⚙️ Stack: HubSpot, Salesforce, AWS</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 23 Mar 2026 08:55</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 3: Sara Bianchi — email=no, phone=yes, verified=no — 65% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Sara Bianchi</div><div style="font-size:11px;color:#3D4F63;">Torino, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">HR Director</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">HR Solutions</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:69%;animation-delay:.55s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">69</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:65%;height:100%;background:#D97706;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">65%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-qualified">Qualificato</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Ieri, 17:00</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span style="color:#6B7A8A;">📧 email non disponibile</span>
+                        <span>📞 +39 011 3333333</span>
+                        <span>🔗 linkedin.com/in/sarabianchi</span>
+                        <span>📍 Torino, Piemonte, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 HR Solutions — 45 dipendenti</span>
+                        <span>💼 Settore: HR Tech / SaaS</span>
+                        <span>💰 Revenue: €1M–€5M</span>
+                        <span>⚙️ Stack: Workday, Slack, Google</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 22 Mar 2026 17:00</span>
+                        <span>🎯 Campagna: Q1 2026 — HR</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 4: Luca Conti — email=yes, phone=no, verified=no — 85% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Luca Conti</div><div style="font-size:11px;color:#3D4F63;">Milano, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">CTO</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">PropTech</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill score-fill-hot" style="--w:91%;animation-delay:.6s;"></div></div><span style="font-size:12px;font-weight:700;color:#FF8C38;">91</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:85%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">85%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-hot">🔥 Hot</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Ieri, 14:20</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 luca@proptech.it <span style="color:#6B7A8A;font-size:10px;">non verificata</span></span>
+                        <span style="color:#6B7A8A;">📞 non disponibile</span>
+                        <span>🔗 linkedin.com/in/lucaconti</span>
+                        <span>📍 Milano, Lombardia, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 PropTech — 60 dipendenti</span>
+                        <span>💼 Settore: PropTech / Real Estate</span>
+                        <span>💰 Revenue: €2M–€10M</span>
+                        <span>⚙️ Stack: Azure, React, Node.js</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 22 Mar 2026 14:20</span>
+                        <span>🎯 Campagna: Q1 2026 — Tech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 5: Giulia Marini — email=yes, phone=no, verified=yes — 71% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Giulia Marini</div><div style="font-size:11px;color:#3D4F63;">Napoli, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">CMO</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">eCommerceIt</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:58%;animation-delay:.65s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">58</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:71%;height:100%;background:#D97706;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">71%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-qualified">Qualificato</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Ieri, 11:00</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 giulia@ecommerceit.it <span style="color:#16a34a;font-size:10px;">✓ verificata</span></span>
+                        <span style="color:#6B7A8A;">📞 non disponibile</span>
+                        <span>🔗 linkedin.com/in/giuliamarini</span>
+                        <span>📍 Napoli, Campania, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 eCommerceIt — 200 dipendenti</span>
+                        <span>💼 Settore: eCommerce / Retail</span>
+                        <span>💰 Revenue: €20M–€50M</span>
+                        <span>⚙️ Stack: Shopify, Google Ads, Meta</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 22 Mar 2026 11:00</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 6: Valentina De Luca — email=yes, phone=yes, verified=yes — 88% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Valentina De Luca</div><div style="font-size:11px;color:#3D4F63;">Firenze, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">VP Sales</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">MedTech EU</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill score-fill-hot" style="--w:87%;animation-delay:.7s;"></div></div><span style="font-size:12px;font-weight:700;color:#FF8C38;">87</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:88%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">88%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">2 gg fa</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 v.deluca@medtecheu.it <span style="color:#16a34a;font-size:10px;">✓ verificata</span></span>
+                        <span>📞 +39 055 6666666</span>
+                        <span>🔗 linkedin.com/in/valentinaDeluca</span>
+                        <span>📍 Firenze, Toscana, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 MedTech EU — 180 dipendenti</span>
+                        <span>💼 Settore: MedTech / Healthcare</span>
+                        <span>💰 Revenue: €15M–€40M</span>
+                        <span>⚙️ Stack: SAP, Salesforce, Oracle</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 21 Mar 2026 10:30</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 7: Roberto Esposito — email=no, phone=no, verified=no — 60% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Roberto Esposito</div><div style="font-size:11px;color:#3D4F63;">Bologna, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">COO</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">InsurTech</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:44%;animation-delay:.75s;"></div></div><span style="font-size:12px;font-weight:700;color:#6B7A8A;">44</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3D4F63" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:60%;height:100%;background:#4B5B6E;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">60%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-cold">Freddo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">2 gg fa</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span style="color:#6B7A8A;">📧 email non disponibile</span>
+                        <span style="color:#6B7A8A;">📞 non disponibile</span>
+                        <span>🔗 linkedin.com/in/robertoesposito</span>
+                        <span>📍 Bologna, Emilia-Romagna, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 InsurTech — 30 dipendenti</span>
+                        <span>💼 Settore: InsurTech / Fintech</span>
+                        <span>💰 Revenue: €1M–€3M</span>
+                        <span>⚙️ Stack: Python, AWS, Stripe</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 21 Mar 2026 09:00</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <!-- Row 8: Fabio Romano — email=yes, phone=yes, verified=yes — 95% -->
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Fabio Romano</div><div style="font-size:11px;color:#3D4F63;">Roma, IT</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Founder</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">GreenTech</td>
+                <td style="padding:13px 18px;"><a href="#" style="color:#5B8FFF;display:flex;align-items:center;gap:4px;font-size:12px;"><svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>Profilo</a></td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:62%;animation-delay:.8s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">62</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.6a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#0077B5;color:white;font-size:8px;font-weight:800;border-radius:3px;">in</span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:95%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">95%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-qualified">Qualificato</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">3 gg fa</td>
+                <td style="padding:13px 18px;"><span style="background:#0077B5;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="white"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Contatto</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>📧 fabio@greentech.it <span style="color:#16a34a;font-size:10px;">✓ verificata</span></span>
+                        <span>📞 +39 06 8888888</span>
+                        <span>🔗 linkedin.com/in/fabioromano</span>
+                        <span>📍 Roma, Lazio, IT</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Azienda Arricchita</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🏢 GreenTech — 25 dipendenti</span>
+                        <span>💼 Settore: CleanTech / GreenEnergy</span>
+                        <span>💰 Revenue: €500K–€2M</span>
+                        <span>⚙️ Stack: AWS, Python, Notion</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: LinkedIn Scraper v2</span>
+                        <span>📦 Actor: apify/linkedin-profile-scraper</span>
+                        <span>📅 Estratto: 20 Mar 2026 08:00</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TABLE: Aziende -->
+      <div id="tableB-aziende" class="panel" style="display:none;overflow:hidden;">
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom:1px solid rgba(32,76,229,.15);">
+                <th style="width:24px;padding:0 4px;"></th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Azienda</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Settore</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Dimensioni</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Sede</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Score</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 10px;text-align:left;">Dati</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Status</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Data</th>
+                <th style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#3D4F63;padding:12px 18px;text-align:left;">Fonte</th>
+                <th style="padding:12px 18px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">Acme SRL</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">SaaS</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">50-200</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Milano, IT</td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:85%;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">85</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:9px;color:#6B7A8A;font-weight:600;">~120</span>
+                    <span style="font-size:9px;color:#16a34a;font-weight:600;">€5M+</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#16a34a;color:white;font-size:8px;font-weight:800;border-radius:3px;">&lt;/&gt;</span>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:74%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">74%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Oggi, 09:15</td>
+                <td style="padding:13px 18px;"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Azienda</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🌐 acmesrl.it</span>
+                        <span>👥 ~120 dipendenti</span>
+                        <span>📍 Milano, Lombardia, IT</span>
+                        <span>💼 SaaS / B2B Software</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Commerciali</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>💰 Revenue: €5M–€20M</span>
+                        <span>📈 Crescita: +18% YoY</span>
+                        <span>⚙️ Stack: HubSpot, Salesforce, AWS</span>
+                        <span>🔗 linkedin.com/company/acme-srl</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: Apollo Company Enricher</span>
+                        <span>📦 Fonte: Apollo.io API</span>
+                        <span>📅 Estratto: 23 Mar 2026 09:15</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">TechVenture</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Fintech</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">200-500</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Roma, IT</td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:72%;animation-delay:.5s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">72</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:9px;color:#6B7A8A;font-weight:600;">~350</span>
+                    <span style="font-size:9px;color:#16a34a;font-weight:600;">€25M+</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#16a34a;color:white;font-size:8px;font-weight:800;border-radius:3px;">&lt;/&gt;</span>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:82%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">82%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-contact">Contattato</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Oggi, 08:30</td>
+                <td style="padding:13px 18px;"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Azienda</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🌐 techventure.it</span>
+                        <span>👥 ~350 dipendenti</span>
+                        <span>📍 Roma, Lazio, IT</span>
+                        <span>💼 Fintech / Payments</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Commerciali</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>💰 Revenue: €25M–€80M</span>
+                        <span>📈 Crescita: +25% YoY</span>
+                        <span>⚙️ Stack: Stripe, AWS, React</span>
+                        <span>🔗 linkedin.com/company/techventure</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: Apollo Company Enricher</span>
+                        <span>📦 Fonte: Apollo.io API</span>
+                        <span>📅 Estratto: 23 Mar 2026 08:30</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">StartupHub</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">HR Tech</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">10-50</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Torino, IT</td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:68%;animation-delay:.55s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">68</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:9px;color:#6B7A8A;font-weight:600;">~30</span>
+                    <span style="font-size:9px;color:#D97706;font-weight:600;">€1M+</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#3D4F63;color:white;font-size:8px;font-weight:800;border-radius:3px;">&lt;/&gt;</span>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:60%;height:100%;background:#4B5B6E;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">60%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Ieri, 17:00</td>
+                <td style="padding:13px 18px;"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Azienda</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🌐 startuphub.io</span>
+                        <span>👥 ~30 dipendenti</span>
+                        <span>📍 Torino, Piemonte, IT</span>
+                        <span>💼 HR Tech / Recruiting</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Commerciali</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>💰 Revenue: €1M–€3M</span>
+                        <span>📈 Crescita: +30% YoY</span>
+                        <span>⚙️ Stack: dati non disponibili</span>
+                        <span>🔗 linkedin.com/company/startuphub</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: Apollo Company Enricher</span>
+                        <span>📦 Fonte: Apollo.io API</span>
+                        <span>📅 Estratto: 22 Mar 2026 17:00</span>
+                        <span>🎯 Campagna: Q1 2026 — HR</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">GreenCorp</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">CleanTech</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">50-200</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Bologna, IT</td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill score-fill-hot" style="--w:91%;animation-delay:.6s;"></div></div><span style="font-size:12px;font-weight:700;color:#FF8C38;">91</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:9px;color:#6B7A8A;font-weight:600;">~90</span>
+                    <span style="font-size:9px;color:#16a34a;font-weight:600;">€8M+</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#16a34a;color:white;font-size:8px;font-weight:800;border-radius:3px;">&lt;/&gt;</span>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:88%;height:100%;background:#16a34a;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">88%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-qualified">Qualificato</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">Ieri, 14:20</td>
+                <td style="padding:13px 18px;"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+                <td style="padding:13px 18px;"><button style="background:rgba(255,255,255,.06);color:#4B5B6E;border:1px solid rgba(255,255,255,.08);padding:7px 13px;border-radius:9px;font-size:12px;cursor:pointer;">Dettaglio</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Azienda</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🌐 greencorp.eu</span>
+                        <span>👥 ~90 dipendenti</span>
+                        <span>📍 Bologna, Emilia-Romagna, IT</span>
+                        <span>💼 CleanTech / Green Energy</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Commerciali</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>💰 Revenue: €8M–€25M</span>
+                        <span>📈 Crescita: +42% YoY</span>
+                        <span>⚙️ Stack: AWS, Python, Tableau</span>
+                        <span>🔗 linkedin.com/company/greencorp</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: Apollo Company Enricher</span>
+                        <span>📦 Fonte: Apollo.io API</span>
+                        <span>📅 Estratto: 22 Mar 2026 14:20</span>
+                        <span>🎯 Campagna: Q1 2026 — Fintech</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid rgba(255,255,255,.04);transition:background .12s;" onmouseover="this.style.background='rgba(32,76,229,.07)'" onmouseout="this.style.background='transparent'">
+                <td style="width:24px;padding:0 4px;"><button onclick="toggleEnrich(this)" style="width:20px;height:20px;border:none;background:transparent;cursor:pointer;color:#4B5B6E;font-size:14px;display:flex;align-items:center;justify-content:center;border-radius:4px;" onmouseover="this.style.background='rgba(255,255,255,.08)';this.style.color='#C8D4E0'" onmouseout="this.style.background='transparent';this.style.color='#4B5B6E'">›</button></td>
+                <td style="padding:13px 18px;"><div style="font-weight:600;color:#C8D4E0;">MediaGroup</div></td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Media</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">500-1000</td>
+                <td style="padding:13px 18px;font-size:13px;color:#4B5B6E;">Milano, IT</td>
+                <td style="padding:13px 18px;"><div style="display:flex;align-items:center;gap:8px;"><div style="height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;width:60px;"><div class="score-fill" style="--w:63%;animation-delay:.65s;"></div></div><span style="font-size:12px;font-weight:700;color:#5B8FFF;">63</span></div></td>
+                <td style="padding:10px 10px;">
+                  <div style="display:flex;gap:3px;align-items:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                    <span style="font-size:9px;color:#6B7A8A;font-weight:600;">~700</span>
+                    <span style="font-size:9px;color:#16a34a;font-weight:600;">€50M+</span>
+                    <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;background:#3D4F63;color:white;font-size:8px;font-weight:800;border-radius:3px;">&lt;/&gt;</span>
+                  </div>
+                  <div style="width:48px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:3px;"><div style="width:65%;height:100%;background:#D97706;border-radius:2px;"></div></div>
+                  <div style="font-size:9px;color:#4B5B6E;margin-top:1px;">65%</div>
+                </td>
+                <td style="padding:13px 18px;"><span class="badge badge-new">Nuovo</span></td>
+                <td style="padding:13px 18px;font-size:12px;color:#3D4F63;">2 gg fa</td>
+                <td style="padding:13px 18px;"><span style="background:#7C3AED;color:white;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Apollo</span></td>
+                <td style="padding:13px 18px;"><button style="background:#204CE5;color:white;border:none;padding:7px 13px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Qualifica →</button></td>
+              </tr>
+              <tr class="enrich-detail" style="display:none;">
+                <td colspan="11" style="padding:0 12px 12px 44px;background:#1E293B;">
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:12px;background:#334155;border-radius:8px;border:1px solid rgba(255,255,255,.08);">
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Azienda</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🌐 mediagroup.it</span>
+                        <span>👥 ~700 dipendenti</span>
+                        <span>📍 Milano, Lombardia, IT</span>
+                        <span>💼 Media / Publishing</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Dati Commerciali</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>💰 Revenue: €50M–€200M</span>
+                        <span>📈 Crescita: +5% YoY</span>
+                        <span>⚙️ Stack: dati parziali</span>
+                        <span>🔗 linkedin.com/company/mediagroup</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Sorgente n8n</div>
+                      <div style="font-size:12px;color:#C8D4E0;display:flex;flex-direction:column;gap:4px;">
+                        <span>🤖 Workflow: Apollo Company Enricher</span>
+                        <span>📦 Fonte: Apollo.io API</span>
+                        <span>📅 Estratto: 21 Mar 2026 09:00</span>
+                        <span>🎯 Campagna: Q1 2026 — Media</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<!-- SEARCH PANEL -->
+<div id="searchPanel" class="search-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;">
+    <h2 style="font-size:18px;font-weight:800;color:white;">Nuova Ricerca</h2>
+    <button onclick="togglePanel()" style="background:rgba(255,255,255,.08);border:none;width:34px;height:34px;border-radius:11px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;color:#6B7A8A;">×</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:22px;">
+    <div>
+      <label style="font-size:11px;font-weight:700;color:#3D4F63;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em;">Parole Chiave</label>
+      <input class="input-dark" type="text" value="CEO, Fintech" placeholder="es. CEO, HR Manager…">
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:#3D4F63;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em;">Posizione Geografica</label>
+      <input class="input-dark" type="text" value="Milano, Italia" placeholder="es. Milano, Roma…">
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:#3D4F63;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em;">Dimensione Azienda</label>
+      <select class="input-dark" style="cursor:pointer;">
+        <option>Tutte le dimensioni</option>
+        <option>1–10 dipendenti</option>
+        <option>11–50 dipendenti</option>
+        <option selected>51–200 dipendenti</option>
+        <option>201–500 dipendenti</option>
+        <option>500+ dipendenti</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;font-weight:700;color:#3D4F63;display:block;margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em;">Campagna</label>
+      <select class="input-dark" style="cursor:pointer;">
+        <option>Q1 2026 — Fintech</option>
+        <option>HR Q1</option>
+        <option>Tech Q2</option>
+      </select>
+    </div>
+    <div style="background:rgba(32,76,229,.15);border:1px solid rgba(32,76,229,.3);border-radius:16px;padding:18px;">
+      <div style="font-size:11px;color:#3D4F63;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;">Risultati Stimati</div>
+      <div style="font-size:28px;font-weight:900;color:#5B8FFF;letter-spacing:-1px;">~80–120</div>
+      <div style="font-size:12px;color:#4B5B6E;margin-top:3px;">profili LinkedIn corrispondenti</div>
+    </div>
+    <button style="background:#204CE5;color:white;border:none;padding:15px;border-radius:14px;font-size:15px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 4px 24px rgba(32,76,229,.45);">⚡ Avvia Ricerca LinkedIn</button>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div id="overlay" onclick="togglePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;backdrop-filter:blur(3px);"></div>
+
+<!-- TOAST -->
+<div id="toast" class="toast">
+  <div style="width:38px;height:38px;background:rgba(32,76,229,.25);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;border:1px solid rgba(32,76,229,.4);">🔔</div>
+  <div>
+    <div style="font-size:13px;font-weight:700;color:white;">Nuovo lead arrivato</div>
+    <div style="font-size:12px;color:#4B5B6E;margin-top:2px;">Paolo Moretti — CEO · Biotech Torino · score 88</div>
+  </div>
+</div>
+
+<script>
+  function toggleEnrich(btn) {
+    const row = btn.closest('tr');
+    const detailRow = row.nextElementSibling;
+    if (detailRow && detailRow.classList.contains('enrich-detail')) {
+      const isVisible = detailRow.style.display !== 'none';
+      detailRow.style.display = isVisible ? 'none' : 'table-row';
+      btn.textContent = isVisible ? '›' : '⌄';
+      btn.style.transform = isVisible ? 'rotate(0deg)' : '';
+    }
+  }
+
+  function togglePanel() {
+    const sp = document.getElementById('searchPanel');
+    const ov = document.getElementById('overlay');
+    const isOpen = sp.classList.toggle('open');
+    ov.style.display = isOpen ? 'block' : 'none';
+  }
+  setTimeout(() => {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    const ni = document.getElementById('newFeedItem');
+    ni.style.display = 'flex';
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }, 2500);
+
+  function switchTabB(tab) {
+    const isContatti = tab === 'contatti';
+    // Sidebar active state
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    if (isContatti) {
+      document.getElementById('navB-contatti').classList.add('active');
+      document.querySelector('h1') && (document.querySelector('h1').textContent = 'Contatti LinkedIn');
+    } else {
+      document.getElementById('navB-aziende').classList.add('active');
+      document.querySelector('h1') && (document.querySelector('h1').textContent = 'Aziende');
+    }
+    document.getElementById('tableB-contatti').style.display = isContatti ? 'block' : 'none';
+    document.getElementById('tableB-aziende').style.display = isContatti ? 'none' : 'block';
+    document.getElementById('filtersB-contatti').style.display = isContatti ? 'flex' : 'none';
+    document.getElementById('filtersB-aziende').style.display = isContatti ? 'none' : 'flex';
+    // Source header bars
+    document.getElementById('sourceHeaderB-contatti').style.display = isContatti ? 'block' : 'none';
+    document.getElementById('sourceHeaderB-aziende').style.display = isContatti ? 'none' : 'block';
+    // Tab buttons — LinkedIn blue for contatti, Apollo purple for aziende
+    const btnC = document.getElementById('tabB-contatti');
+    const btnA = document.getElementById('tabB-aziende');
+    if (isContatti) {
+      btnC.style.background = '#0077B5'; btnC.style.color = 'white';
+      btnC.querySelector('span').style.background = 'rgba(255,255,255,.25)'; btnC.querySelector('span').style.color = 'white';
+      btnA.style.background = 'transparent'; btnA.style.color = '#4B5B6E';
+      btnA.querySelector('span').style.background = 'rgba(255,255,255,.08)'; btnA.querySelector('span').style.color = '#4B5B6E';
+    } else {
+      btnA.style.background = '#7C3AED'; btnA.style.color = 'white';
+      btnA.querySelector('span').style.background = 'rgba(255,255,255,.25)'; btnA.querySelector('span').style.color = 'white';
+      btnC.style.background = 'transparent'; btnC.style.color = '#4B5B6E';
+      btnC.querySelector('span').style.background = 'rgba(255,255,255,.08)'; btnC.querySelector('span').style.color = '#4B5B6E';
+    }
+  }
+</script>
+</body>
+</html>

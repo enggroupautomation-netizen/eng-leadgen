@@ -1,0 +1,132 @@
+{
+  "name": "ENG — Apollo.io Companies Scraper",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1,3,5" }]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "Lun-Mer-Ven 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apollo.io/v1/mixed_companies/search",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Cache-Control", "value": "no-cache" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"api_key\": \"{{ $vars.APOLLO_API_KEY }}\",\n  \"page\": 1,\n  \"per_page\": 100,\n  \"organization_locations\": [\"Italy\"],\n  \"organization_num_employees_ranges\": [\"11,200\", \"201,1000\"],\n  \"organization_industries\": {{ $vars.APOLLO_INDUSTRIES ? JSON.stringify($vars.APOLLO_INDUSTRIES.split(',')) : '[\"Information Technology\", \"Software\", \"SaaS\"]' }}\n}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "apollo-search",
+      "name": "Apollo.io — Cerca Aziende",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "notes": "Richiede APOLLO_API_KEY nelle variabili n8n. Personalizzare filtri: location, employee range, industries."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalizza output Apollo.io API\nconst data = $input.first().json;\nconst organizations = data.organizations || data.companies || [];\n\nif (!organizations.length) {\n  console.log('Nessuna azienda trovata');\n  return [];\n}\n\nconst results = organizations.map(org => {\n  // Key contacts (people con ruoli C-level)\n  const keyContacts = (org.organization_contacts || org.contacts || []).slice(0, 5).map(c => ({\n    name: `${c.first_name || ''} ${c.last_name || ''}`.trim(),\n    role: c.title || c.headline || null,\n    email: c.email || null,\n    linkedin_url: c.linkedin_url || null,\n  })).filter(c => c.name);\n\n  // Tech stack\n  const technologies = (org.technologies || org.technology_names || []).slice(0, 10);\n\n  // Score\n  let score = 0;\n  if (org.primary_domain || org.website_url) score += 20;\n  if (org.estimated_num_employees) score += 15;\n  if (org.annual_revenue) score += 15;\n  if (technologies.length > 0) score += 15;\n  if (keyContacts.length > 0) score += 20;\n  if (org.linkedin_url) score += 15;\n\n  return {\n    json: {\n      name: org.name || org.organization_name,\n      industry: org.industry || org.primary_industry || null,\n      size_range: org.estimated_num_employees\n        ? org.estimated_num_employees <= 50 ? '1-50'\n          : org.estimated_num_employees <= 200 ? '51-200'\n          : org.estimated_num_employees <= 1000 ? '201-1000'\n          : '1000+'\n        : null,\n      website: org.primary_domain\n        ? `https://${org.primary_domain}`\n        : org.website_url || null,\n      headquarters: [org.city, org.country].filter(Boolean).join(', ') || null,\n      employee_count: org.estimated_num_employees || null,\n      revenue_range: org.annual_revenue\n        ? org.annual_revenue < 1000000 ? '<1M€'\n          : org.annual_revenue < 10000000 ? '1-10M€'\n          : org.annual_revenue < 50000000 ? '10-50M€'\n          : '50M€+'\n        : null,\n      technologies: technologies.length ? technologies : null,\n      key_contacts: keyContacts.length ? keyContacts : null,\n      score: Math.min(score, 100),\n    }\n  };\n});\n\nreturn results;"
+      },
+      "id": "normalize-companies",
+      "name": "Normalizza dati Apollo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "filter-score",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 25,
+              "operator": { "type": "number", "operation": "gte" }
+            },
+            {
+              "id": "filter-name",
+              "leftValue": "={{ $json.name }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "isNotEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "filter-quality",
+      "name": "Filtra qualità (score >= 25)",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 50,
+        "options": {}
+      },
+      "id": "batch",
+      "name": "Batch da 50",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.DASHBOARD_URL }}/.netlify/functions/webhook-companies",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-webhook-secret", "value": "={{ $vars.WEBHOOK_SECRET }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"source\": \"apollo\",\n  \"companies\": {{ JSON.stringify($input.all().map(i => i.json)) }}\n}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "send-to-dashboard",
+      "name": "Invia alla Dashboard",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconsole.log(`✅ Apollo: ${response.inserted} aziende inserite, ${response.received} ricevute`);\nreturn [{ json: { status: 'ok', ...response } }];"
+      },
+      "id": "log-result",
+      "name": "Log risultato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    }
+  ],
+  "connections": {
+    "Lun-Mer-Ven 08:00": { "main": [[{ "node": "Apollo.io — Cerca Aziende", "type": "main", "index": 0 }]] },
+    "Apollo.io — Cerca Aziende": { "main": [[{ "node": "Normalizza dati Apollo", "type": "main", "index": 0 }]] },
+    "Normalizza dati Apollo": { "main": [[{ "node": "Filtra qualità (score >= 25)", "type": "main", "index": 0 }]] },
+    "Filtra qualità (score >= 25)": { "main": [[{ "node": "Batch da 50", "type": "main", "index": 0 }]] },
+    "Batch da 50": { "main": [[{ "node": "Invia alla Dashboard", "type": "main", "index": 0 }]] },
+    "Invia alla Dashboard": { "main": [[{ "node": "Log risultato", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "tags": ["ENG", "apollo", "companies", "lead-generation"],
+  "meta": {
+    "description": "Chiama Apollo.io API per cercare aziende target, normalizza i dati, filtra per qualità e li invia alla dashboard ENG. Schedulato lun-mer-ven alle 08:00. VARIABILI RICHIESTE: DASHBOARD_URL, WEBHOOK_SECRET, APOLLO_API_KEY, APOLLO_INDUSTRIES (opzionale, es: 'Software,SaaS,Fintech')"
+  }
+}
