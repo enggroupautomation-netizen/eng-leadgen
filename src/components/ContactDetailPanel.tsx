@@ -135,27 +135,47 @@ export function ContactDetailPanel({ contact, onClose, onUpdate }: Props) {
             <div style={{ fontSize: '12px', color: '#5B6B7A' }}>
               {[contact.role, contact.company].filter(Boolean).join(' · ')}
             </div>
-            {contact.linkedin_url && (
-              <a
-                href={contact.linkedin_url}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '6px',
-                  marginTop: '8px', padding: '6px 12px', borderRadius: '8px',
-                  background: '#0077B5', color: 'white',
-                  fontSize: '12px', fontWeight: 600, textDecoration: 'none',
-                  transition: 'opacity .15s',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
-                onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
-                </svg>
-                Apri profilo LinkedIn
-              </a>
-            )}
+            {(() => {
+              const enr = contact.enrichment as Record<string, unknown> | null
+              const openProfile = enr?.open_profile
+              const premium = enr?.premium
+              const isKnown = typeof openProfile === 'boolean'
+              return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                  {isKnown && (openProfile ? (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: 'rgba(16,185,129,.15)', color: '#34D399', border: '1px solid rgba(16,185,129,.25)' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#34D399' }} />
+                      Profilo Aperto
+                    </span>
+                  ) : (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: 'rgba(107,114,128,.12)', color: '#9CA3AF', border: '1px solid rgba(107,114,128,.2)' }}>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#9CA3AF' }} />
+                      Profilo Chiuso
+                    </span>
+                  ))}
+                  {premium === true && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 9px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: 'rgba(245,158,11,.15)', color: '#F59E0B', border: '1px solid rgba(245,158,11,.25)' }}>
+                      ✦ Premium
+                    </span>
+                  )}
+                  {contact.linkedin_url && (
+                    <a
+                      href={contact.linkedin_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 9px', borderRadius: '8px', background: '#0077B5', color: 'white', fontSize: '11px', fontWeight: 600, textDecoration: 'none', transition: 'opacity .15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '.85')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                      </svg>
+                      LinkedIn
+                    </a>
+                  )}
+                </div>
+              )
+            })()}
           </div>
           <button
             onClick={onClose}
