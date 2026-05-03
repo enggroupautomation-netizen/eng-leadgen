@@ -16,14 +16,14 @@ interface NetlifyResponse {
 
 const ContactSchema = z.object({
   name: z.string(),
-  role: z.string().optional(),
-  company: z.string().optional(),
-  linkedin_url: z.string().url().optional(),
-  email: z.string().email().optional(),
-  phone: z.string().optional(),
-  location: z.string().optional(),
+  role: z.string().nullish(),
+  company: z.string().nullish(),
+  linkedin_url: z.string().nullish(),
+  email: z.string().nullish(),
+  phone: z.string().nullish(),
+  location: z.string().nullish(),
   score: z.number().min(0).max(100).default(0),
-  enrichment: z.record(z.unknown()).optional(),
+  enrichment: z.record(z.string(), z.unknown()).nullish(),
 })
 
 const PayloadSchema = z.object({
