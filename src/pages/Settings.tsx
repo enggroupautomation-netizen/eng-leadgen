@@ -46,7 +46,7 @@ const LABEL_STYLE: React.CSSProperties = {
 }
 
 export function Settings() {
-  const { user, signOut } = useAuth()
+  const { user, isAdmin, signOut } = useAuth()
   const { brand, updateBrand } = useBrand()
 
   // ── Brand settings ───────────────────────────────────────────
@@ -184,8 +184,15 @@ export function Settings() {
 
       <div style={{ padding: '32px', maxWidth: '720px' }}>
 
+        {!isAdmin && (
+          <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(32,76,229,.08)', border: '1px solid rgba(32,76,229,.2)', fontSize: '12px', color: '#527EFF', marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Hai accesso solo alle impostazioni del tuo account. Le sezioni di configurazione piattaforma sono riservate agli amministratori.
+          </div>
+        )}
+
         {/* ── Brand ── */}
-        <div style={CARD_STYLE}>
+        {isAdmin && <div style={CARD_STYLE}>
           <h2 style={SECTION_TITLE}>Brand & Aspetto</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px' }}>
             Personalizza logo e nome della piattaforma. Le modifiche vengono salvate localmente.
@@ -282,7 +289,7 @@ export function Settings() {
               Ripristina default
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* ── Section 1: Account ── */}
         <div style={CARD_STYLE}>
@@ -358,7 +365,7 @@ export function Settings() {
         </div>
 
         {/* ── Section 2: Invite team ── */}
-        <div style={CARD_STYLE}>
+        {isAdmin && <div style={CARD_STYLE}>
           <h2 style={SECTION_TITLE}>Invita Team</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
             Invita colleghi ad accedere alla piattaforma con un ruolo specifico.
@@ -438,10 +445,10 @@ export function Settings() {
               </div>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* ── Section 3: Pipeline stages ── */}
-        <div style={CARD_STYLE}>
+        {isAdmin && <div style={CARD_STYLE}>
           <h2 style={SECTION_TITLE}>Stage Pipeline</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
             Gli stage correnti del CRM. Modifica gli stage direttamente nel database Supabase per ora.
@@ -469,7 +476,7 @@ export function Settings() {
               ))}
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ── Section: Onboarding reset ── */}
         <div style={CARD_STYLE}>
@@ -501,7 +508,7 @@ export function Settings() {
         </div>
 
         {/* ── Stripe Integration ── */}
-        <div style={CARD_STYLE}>
+        {isAdmin && <div style={CARD_STYLE}>
           <h2 style={SECTION_TITLE}>Integrazione Stripe</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
             Configura le chiavi Stripe per abilitare i pagamenti e la gestione abbonamenti. Le chiavi vengono salvate in modo sicuro lato server.
@@ -600,10 +607,10 @@ export function Settings() {
               {stripeSaved ? '✓ Salvato' : stripeSaving ? 'Salvo...' : 'Salva chiavi Stripe'}
             </button>
           </div>
-        </div>
+        </div>}
 
         {/* ── Section 4: Webhook endpoints (unchanged) ── */}
-        <div style={CARD_STYLE}>
+        {isAdmin && <div style={CARD_STYLE}>
           <h2 style={{ ...SECTION_TITLE, marginBottom: '4px' }}>Webhook Endpoints</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
             Usa questi endpoint per inviare dati dalla tua automazione n8n
@@ -647,10 +654,10 @@ export function Settings() {
               </div>
             </div>
           ))}
-        </div>
+        </div>}
 
         {/* Environment section */}
-        <div style={{ ...CARD_STYLE, marginBottom: 0 }}>
+        {isAdmin && <div style={{ ...CARD_STYLE, marginBottom: 0 }}>
           <h2 style={{ ...SECTION_TITLE, marginBottom: '4px' }}>Variabili d'ambiente</h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>
             Configura nel file <code style={{ color: '#527EFF' }}>.env.local</code> (frontend) e nelle variabili Netlify (functions)
@@ -675,7 +682,7 @@ export function Settings() {
               </div>
             ))}
           </div>
-        </div>
+        </div>}
 
       </div>
     </div>

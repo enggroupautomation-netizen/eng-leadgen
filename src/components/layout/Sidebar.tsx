@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase'
 import { DEMO_MODE } from '../../lib/mockData'
 import { useTheme } from '../../contexts/ThemeContext'
 import { useBrand } from '../../contexts/BrandContext'
+import { useAuth } from '../../hooks/useAuth'
 
 const navItemStyle = (isActive: boolean, activeColor = '#204CE5', isDark = true): CSSProperties => ({
   display: 'flex',
@@ -61,6 +62,7 @@ const onboardingSteps = [
 export function Sidebar() {
   const { theme } = useTheme()
   const { brand } = useBrand()
+  const { isAdmin } = useAuth()
   const [completedSteps, setCompletedSteps] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('eng_onboarding') ?? '[]') } catch { return [] }
   })
@@ -203,6 +205,20 @@ export function Sidebar() {
           </span>
           Impostazioni
         </NavLink>
+
+        {isAdmin && (
+          <NavLink to="/utenti" style={({ isActive }) => navItemStyle(isActive, '#F59E0B', isDark)}>
+            <span style={navIconStyle}>
+              <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="19" y1="8" x2="19" y2="14"/>
+                <line x1="22" y1="11" x2="16" y2="11"/>
+              </svg>
+            </span>
+            Utenti
+          </NavLink>
+        )}
 
         <NavLink to="/tutorial" style={({ isActive }) => navItemStyle(isActive, '#204CE5', isDark)}>
           <span style={navIconStyle}>
