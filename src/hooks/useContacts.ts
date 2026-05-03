@@ -57,7 +57,14 @@ export function useContacts(filters: Filters = {}) {
     const channel = supabase
       .channel('contacts-changes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'contacts' },
-        (payload) => setContacts(prev => [payload.new as Contact, ...prev])
+        async (payload) => {
+          const { data } = await supabase
+            .from('contacts')
+            .select('*, stage:pipeline_stages(*)')
+            .eq('id', payload.new.id)
+            .single()
+          if (data) setContacts(prev => [data as Contact, ...prev])
+        }
       )
       .subscribe()
     return () => { supabase.removeChannel(channel) }

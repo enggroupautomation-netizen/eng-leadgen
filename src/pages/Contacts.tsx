@@ -116,6 +116,8 @@ export function Contacts() {
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list')
   const [localContacts, setLocalContacts] = useState<Contact[]>([])
   const [stages, setStages] = useState<PipelineStage[]>(MOCK_STAGES)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   const { contacts, loading, error } = useContacts({
     search: debouncedSearch || undefined,
@@ -152,6 +154,35 @@ export function Contacts() {
   const filtered = activeStage === 'Tutti'
     ? localContacts
     : localContacts.filter(c => c.stage?.name === activeStage)
+
+  const allSelected = filtered.length > 0 && filtered.every(c => selectedIds.has(c.id))
+  const someSelected = selectedIds.size > 0
+
+  function toggleSelect(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map(c => c.id)))
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (!someSelected || DEMO_MODE) return
+    setDeleting(true)
+    const ids = Array.from(selectedIds)
+    await supabase.from('contacts').delete().in('id', ids)
+    setLocalContacts(prev => prev.filter(c => !selectedIds.has(c.id)))
+    setSelectedIds(new Set())
+    setDeleting(false)
+  }
 
   let searchTimeout: ReturnType<typeof setTimeout>
   const handleSearch = (val: string) => {
@@ -362,6 +393,29 @@ export function Contacts() {
             />
           </div>
 
+          {/* Bulk delete */}
+          {someSelected && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '7px 12px', borderRadius: '9px',
+                border: '1px solid rgba(239,68,68,.35)',
+                background: 'rgba(239,68,68,.1)',
+                color: '#f87171', fontSize: '12px', fontWeight: 600,
+                cursor: deleting ? 'default' : 'pointer',
+                fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+              }}
+            >
+              <svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+              </svg>
+              {deleting ? 'Eliminazione...' : `Elimina ${selectedIds.size}`}
+            </button>
+          )}
+
           {/* Export CSV */}
           <button
             onClick={() => exportContactsCSV(filtered)}
@@ -414,6 +468,14 @@ export function Contacts() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ background: 'var(--surface)', position: 'sticky', top: 0, zIndex: 1 }}>
               <tr>
+                <th style={{ padding: '12px 8px 12px 18px', borderBottom: '1px solid var(--border)', width: '36px' }}>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    style={{ cursor: 'pointer', accentColor: '#204CE5' }}
+                  />
+                </th>
                 {['#', 'Contatto', 'Ruolo', 'Azienda', 'Email', 'Score', 'Affidabilità', 'Stage', 'Data'].map(h => (
                   <th key={h} style={{
                     fontSize: '10.5px',
@@ -436,7 +498,7 @@ export function Contacts() {
                 Array.from({ length: 8 }, (_, i) => <SkeletonRow key={i} />)
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} style={{ padding: '60px 0', textAlign: 'center' }}>
+                  <td colSpan={10} style={{ padding: '60px 0', textAlign: 'center' }}>
                     <div style={{ color: 'var(--text-subtle)' }}>
                       <svg width="36" height="36" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}
                         style={{ margin: '0 auto 12px', display: 'block' }}>
@@ -457,21 +519,33 @@ export function Contacts() {
                     key={contact.id}
                     onClick={() => setSelectedContact(contact)}
                     style={{
-                      background: idx % 2 === 0 ? 'var(--overlay-xs)' : 'transparent',
+                      background: selectedIds.has(contact.id) ? 'rgba(32,76,229,.07)' : idx % 2 === 0 ? 'var(--overlay-xs)' : 'transparent',
                       borderBottom: '1px solid var(--border-sm)',
-                      borderLeft: '2px solid transparent',
+                      borderLeft: `2px solid ${selectedIds.has(contact.id) ? '#204CE5' : 'transparent'}`,
                       transition: 'all .12s',
                       cursor: 'pointer',
                     }}
                     onMouseEnter={e => {
-                      (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(32,76,229,.06)'
-                      ;(e.currentTarget as HTMLTableRowElement).style.borderLeftColor = '#204CE5'
+                      if (!selectedIds.has(contact.id)) {
+                        (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(32,76,229,.06)'
+                        ;(e.currentTarget as HTMLTableRowElement).style.borderLeftColor = '#204CE5'
+                      }
                     }}
                     onMouseLeave={e => {
-                      (e.currentTarget as HTMLTableRowElement).style.background = idx % 2 === 0 ? 'var(--overlay-xs)' : 'transparent'
-                      ;(e.currentTarget as HTMLTableRowElement).style.borderLeftColor = 'transparent'
+                      if (!selectedIds.has(contact.id)) {
+                        (e.currentTarget as HTMLTableRowElement).style.background = idx % 2 === 0 ? 'var(--overlay-xs)' : 'transparent'
+                        ;(e.currentTarget as HTMLTableRowElement).style.borderLeftColor = 'transparent'
+                      }
                     }}
                   >
+                    <td style={{ padding: '13px 8px 13px 18px' }} onClick={e => { e.stopPropagation(); toggleSelect(contact.id) }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(contact.id)}
+                        onChange={() => toggleSelect(contact.id)}
+                        style={{ cursor: 'pointer', accentColor: '#204CE5' }}
+                      />
+                    </td>
                     <td style={{ padding: '13px 18px', fontSize: '12px', color: 'var(--text-subtle)' }}>{idx + 1}</td>
                     <td style={{ padding: '13px 18px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
