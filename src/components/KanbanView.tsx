@@ -9,9 +9,10 @@ interface Props {
   onItemClick: (item: KanbanRecord) => void
   onStageChange: (item: KanbanRecord, newStageId: string) => void
   type: 'contacts' | 'companies'
+  onAddToStage?: (stageId: string) => void
 }
 
-export function KanbanView({ items, stages, onItemClick, onStageChange }: Props) {
+export function KanbanView({ items, stages, onItemClick, onStageChange, onAddToStage }: Props) {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOverStageId, setDragOverStageId] = useState<string | null>(null)
 
@@ -73,11 +74,30 @@ export function KanbanView({ items, stages, onItemClick, onStageChange }: Props)
                 <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: stage.color }} />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: stage.color }}>{stage.name}</span>
               </div>
-              <span style={{
-                fontSize: '11px', fontWeight: 700,
-                background: `${stage.color}25`, color: stage.color,
-                padding: '2px 8px', borderRadius: '20px',
-              }}>{stageItems.length}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{
+                  fontSize: '11px', fontWeight: 700,
+                  background: `${stage.color}25`, color: stage.color,
+                  padding: '2px 8px', borderRadius: '20px',
+                }}>{stageItems.length}</span>
+                {onAddToStage && (
+                  <button
+                    onClick={() => onAddToStage(stage.id)}
+                    title={`Aggiungi a ${stage.name}`}
+                    style={{
+                      width: '22px', height: '22px',
+                      borderRadius: '6px',
+                      border: `1px solid ${stage.color}40`,
+                      background: `${stage.color}18`,
+                      color: stage.color,
+                      cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '15px', lineHeight: 1, fontFamily: 'Inter, sans-serif',
+                      flexShrink: 0,
+                    }}
+                  >+</button>
+                )}
+              </div>
             </div>
 
             {/* Drop zone hint */}

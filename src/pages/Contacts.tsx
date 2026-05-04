@@ -118,6 +118,8 @@ export function Contacts() {
   const [stages, setStages] = useState<PipelineStage[]>(MOCK_STAGES)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addInitialStageId, setAddInitialStageId] = useState<string | null>(null)
 
   const { contacts, loading, error } = useContacts({
     search: debouncedSearch || undefined,
@@ -182,6 +184,70 @@ export function Contacts() {
     setLocalContacts(prev => prev.filter(c => !selectedIds.has(c.id)))
     setSelectedIds(new Set())
     setDeleting(false)
+  }
+
+  function openAddModal(stageId?: string) {
+    setAddInitialStageId(stageId ?? null)
+    setShowAddModal(true)
+  }
+
+  async function handleAddContact(form: {
+    name: string; role: string; company: string; email: string
+    phone: string; linkedin_url: string; stage_id: string | null; note: string
+  }) {
+    if (DEMO_MODE) {
+      const fakeStage = stages.find(s => s.id === form.stage_id) ?? stages[0]
+      const newContact: Contact = {
+        id: crypto.randomUUID(),
+        name: form.name,
+        role: form.role || null,
+        company: form.company || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        linkedin_url: form.linkedin_url || null,
+        location: null,
+        score: 0,
+        trust_score: null,
+        enrichment: null,
+        stage_id: fakeStage?.id ?? null,
+        stage: fakeStage ?? null,
+        assigned_to: null,
+        campaign_id: null,
+        raw_payload: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      setLocalContacts(prev => [newContact, ...prev])
+      setShowAddModal(false)
+      return
+    }
+    const defaultStageId = form.stage_id ?? stages.find(s => s.is_default)?.id ?? stages[0]?.id ?? null
+    const { data, error } = await supabase
+      .from('contacts')
+      .insert({
+        name: form.name,
+        role: form.role || null,
+        company: form.company || null,
+        email: form.email || null,
+        phone: form.phone || null,
+        linkedin_url: form.linkedin_url || null,
+        score: 0,
+        stage_id: defaultStageId,
+      })
+      .select('*, stage:pipeline_stages(*)')
+      .single()
+    if (!error && data) {
+      setLocalContacts(prev => [data as Contact, ...prev])
+      if (form.note.trim()) {
+        await supabase.from('activities').insert({
+          record_type: 'contact',
+          record_id: (data as Contact).id,
+          type: 'note',
+          content: form.note.trim(),
+        })
+      }
+    }
+    setShowAddModal(false)
   }
 
   let searchTimeout: ReturnType<typeof setTimeout>
@@ -416,6 +482,23 @@ export function Contacts() {
             </button>
           )}
 
+          {/* Add contact */}
+          <button
+            onClick={() => openAddModal()}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              padding: '7px 14px', borderRadius: '9px',
+              border: '1px solid rgba(32,76,229,.4)',
+              background: 'rgba(32,76,229,.12)',
+              color: '#7EB3FF', fontSize: '12px', fontWeight: 600,
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+              whiteSpace: 'nowrap', transition: 'all .12s',
+            }}
+          >
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Aggiungi
+          </button>
+
           {/* Export CSV */}
           <button
             onClick={() => exportContactsCSV(filtered)}
@@ -458,6 +541,7 @@ export function Contacts() {
               onItemClick={(item) => setSelectedContact(item as Contact)}
               onStageChange={(item, stageId) => handleKanbanStageChange(item as Contact, stageId)}
               type="contacts"
+              onAddToStage={(stageId) => openAddModal(stageId)}
             />
           </div>
         ) : error ? (
@@ -646,6 +730,162 @@ export function Contacts() {
           setLocalContacts(prev => prev.map(c => c.id === updated.id ? updated : c))
         }}
       />
+
+      {showAddModal && (
+        <AddContactModal
+          stages={stages}
+          initialStageId={addInitialStageId}
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddContact}
+        />
+      )}
     </div>
+  )
+}
+
+const INPUT_S: React.CSSProperties = {
+  padding: '9px 12px', borderRadius: '9px',
+  border: '1px solid var(--border)', background: 'var(--input-bg)',
+  color: 'var(--text)', fontSize: '13px', outline: 'none',
+  fontFamily: 'Inter, sans-serif', width: '100%', boxSizing: 'border-box',
+}
+const LABEL_S: React.CSSProperties = {
+  fontSize: '11px', fontWeight: 700, color: 'var(--text-subtle)',
+  textTransform: 'uppercase', letterSpacing: '.06em',
+  marginBottom: '5px', display: 'block',
+}
+
+interface AddContactModalProps {
+  stages: PipelineStage[]
+  initialStageId: string | null
+  onClose: () => void
+  onSave: (form: {
+    name: string; role: string; company: string; email: string
+    phone: string; linkedin_url: string; stage_id: string | null; note: string
+  }) => Promise<void>
+}
+
+function AddContactModal({ stages, initialStageId, onClose, onSave }: AddContactModalProps) {
+  const [form, setForm] = useState({
+    name: '', role: '', company: '', email: '',
+    phone: '', linkedin_url: '',
+    stage_id: initialStageId ?? (stages.find(s => s.is_default)?.id ?? stages[0]?.id ?? ''),
+    note: '',
+  })
+  const [saving, setSaving] = useState(false)
+
+  function set(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function submit() {
+    if (!form.name.trim()) return
+    setSaving(true)
+    await onSave({ ...form, stage_id: form.stage_id || null })
+    setSaving(false)
+  }
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 60, backdropFilter: 'blur(2px)' }}
+      />
+      <div style={{
+        position: 'fixed', top: '50%', left: '50%',
+        transform: 'translate(-50%,-50%)',
+        width: '520px', maxWidth: 'calc(100vw - 32px)',
+        background: 'var(--surface)', borderRadius: '20px',
+        border: '1px solid var(--border)',
+        boxShadow: '0 24px 80px rgba(0,0,0,.6)',
+        zIndex: 61, overflow: 'hidden',
+        animation: 'fadeScaleIn .2s cubic-bezier(.4,0,.2,1)',
+      }}>
+        {/* Header */}
+        <div style={{ padding: '22px 24px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text)' }}>Aggiungi Contatto</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-subtle)', marginTop: '2px' }}>Inserimento manuale in pipeline</div>
+          </div>
+          <button onClick={onClose} style={{ width: '32px', height: '32px', borderRadius: '8px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontFamily: 'Inter, sans-serif' }}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '70vh', overflowY: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={LABEL_S}>Nome *</label>
+              <input style={INPUT_S} value={form.name} onChange={e => set('name', e.target.value)} placeholder="Mario Rossi" autoFocus />
+            </div>
+            <div>
+              <label style={LABEL_S}>Ruolo</label>
+              <input style={INPUT_S} value={form.role} onChange={e => set('role', e.target.value)} placeholder="CEO" />
+            </div>
+            <div>
+              <label style={LABEL_S}>Azienda</label>
+              <input style={INPUT_S} value={form.company} onChange={e => set('company', e.target.value)} placeholder="Acme SRL" />
+            </div>
+            <div>
+              <label style={LABEL_S}>Email</label>
+              <input style={INPUT_S} type="email" value={form.email} onChange={e => set('email', e.target.value)} placeholder="mario@acme.it" />
+            </div>
+            <div>
+              <label style={LABEL_S}>Telefono</label>
+              <input style={INPUT_S} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+39 333 1234567" />
+            </div>
+            <div>
+              <label style={LABEL_S}>LinkedIn URL</label>
+              <input style={INPUT_S} value={form.linkedin_url} onChange={e => set('linkedin_url', e.target.value)} placeholder="linkedin.com/in/mario-rossi" />
+            </div>
+          </div>
+
+          <div>
+            <label style={LABEL_S}>Stage Pipeline</label>
+            <select
+              value={form.stage_id}
+              onChange={e => set('stage_id', e.target.value)}
+              style={{ ...INPUT_S, cursor: 'pointer' }}
+            >
+              {stages.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={LABEL_S}>Nota iniziale</label>
+            <textarea
+              value={form.note}
+              onChange={e => set('note', e.target.value)}
+              placeholder="Note sul contatto..."
+              rows={2}
+              style={{ ...INPUT_S, resize: 'vertical' }}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: '9px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-muted)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'Inter, sans-serif' }}>
+            Annulla
+          </button>
+          <button
+            onClick={submit}
+            disabled={!form.name.trim() || saving}
+            style={{
+              padding: '9px 22px', borderRadius: '9px', border: 'none',
+              background: form.name.trim() ? '#204CE5' : 'var(--overlay-md)',
+              color: form.name.trim() ? 'white' : 'var(--text-subtle)',
+              fontSize: '13px', fontWeight: 600,
+              cursor: form.name.trim() && !saving ? 'pointer' : 'default',
+              fontFamily: 'Inter, sans-serif', transition: 'all .15s',
+            }}
+          >
+            {saving ? 'Salvataggio...' : 'Aggiungi contatto'}
+          </button>
+        </div>
+        <style>{`@keyframes fadeScaleIn { from { opacity:0; transform:translate(-50%,-50%) scale(.95); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }`}</style>
+      </div>
+    </>
   )
 }
