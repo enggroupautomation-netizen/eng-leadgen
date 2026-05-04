@@ -207,7 +207,6 @@ export function Contacts() {
         linkedin_url: form.linkedin_url || null,
         location: null,
         score: 0,
-        trust_score: null,
         enrichment: null,
         stage_id: fakeStage?.id ?? null,
         stage: fakeStage ?? null,
